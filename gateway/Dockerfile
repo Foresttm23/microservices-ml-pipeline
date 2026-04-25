@@ -23,5 +23,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy the actual gateway code
 COPY gateway/ ./gateway/
 
-# Run the app (assumes gateway/main.py exists)
-CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN chmod +x ml_worker/start.sh
+
+ENTRYPOINT ["gateway/start.sh"]
