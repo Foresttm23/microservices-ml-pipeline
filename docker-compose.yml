@@ -1,0 +1,17 @@
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8000"  # Host 8080 -> Container 8000
+
+  orchestrator:
+    build: ./orchestrator
+    ports:
+      - "8081:8000"  # Host 8081 -> Container 8000
+
+  ml_worker:
+    build: ./ml_worker
+    environment:
+      - PORT=8000    # We force it to 8000 inside Docker
+    ports:
+      - "8082:8000"  # Host 8082 -> Container 8000
