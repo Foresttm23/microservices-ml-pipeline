@@ -1,5 +1,7 @@
 from app.core.dependencies import HTTPXClientDep
+from app.middleware import build_context_headers
 from fastapi import APIRouter, Request, Response
+from loguru import logger
 
 router = APIRouter()
 
@@ -8,25 +10,36 @@ router = APIRouter()
 async def proxy_to_orchestrator(
     pipeline_id: str, request: Request, client: HTTPXClientDep
 ):
-    # 1. Define the target URL (The Orchestrator)
-    orchestrator_url = f"https://orchestrator.internal/api/run/{pipeline_id}"
+    logger.info(f"Proxying pipeline {pipeline_id}")
 
-    # 2. Extract payload and headers from incoming request
-    body = await request.json()
-    headers = dict(request.headers)
+    orchestrator_url = f"http://127.0.0.1:8001/api/run/{pipeline_id}"
 
-    # Remove the 'host' header to avoid handshake conflicts with the orchestrator
-    headers.pop("host", None)
+    # 1. Get the raw body bytes instead of parsing JSON
+    # This prevents the JSONDecodeError if the body is empty
+    content = await request.body()
 
-    # 3. Forward the request
-    # Note: Use a generous timeout for ML triggers
-    response = await client.post(
-        orchestrator_url, json=body, headers=headers, timeout=30.0
+    # 2. Build headers using your middleware helper
+    headers = build_context_headers(request)
+
+    # 3. Forward original headers (filtered)
+    for key, value in request.headers.items():
+        if key.lower() not in ("host", "content-length"):
+            headers[key] = value
+
+    # 4. Forward the request using 'content' instead of 'json'
+    # This works regardless of whether the body is empty, plain text, or JSON
+    response = await client.request(
+        method=request.method,
+        url=orchestrator_url,
+        content=content,
+        headers=headers,
+        timeout=60.0,  # ML tasks can be slow
     )
 
-    # 4. Return the orchestrator's response back to the original client
     return Response(
         content=response.content,
         status_code=response.status_code,
-        headers=dict(response.headers),
+        headers={
+            k: v for k, v in response.headers.items() if k.lower() != "content-length"
+        },
     )

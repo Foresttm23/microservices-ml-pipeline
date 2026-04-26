@@ -1,10 +1,13 @@
 import os
 from contextlib import asynccontextmanager
 
+import httpx
 import uvicorn
+from app.api.v1 import health, query
 from app.core.exception_handlers import register_exception_handlers
 from app.core.httpx_client import httpx_client_manager
 from app.core.logging import setup_logging
+from app.middleware import RequestContextMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -17,8 +20,8 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Startup")
     httpx_client_manager.start(
-        timeout=10.0,
-        limits={"max_connections": 100, "max_keepalive_connections": 20},
+        timeout=httpx.Timeout(10.0),
+        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
     )
 
     yield
@@ -29,7 +32,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(health.router)
+app.include_router(query.router)
+
 register_exception_handlers(app)
+app.add_middleware(RequestContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
