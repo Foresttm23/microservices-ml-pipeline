@@ -2,9 +2,9 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-
-from core.httpx_client import http_client_manager
-from core.logging import setup_logging
+from app.core.exception_handlers import register_exception_handlers
+from app.core.httpx_client import httpx_client_manager
+from app.core.logging import setup_logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -16,32 +16,20 @@ async def lifespan(app: FastAPI):
 
     # Startup
     logger.info("Startup")
-    http_client_manager.start(
+    httpx_client_manager.start(
         timeout=10.0,
         limits={"max_connections": 100, "max_keepalive_connections": 20},
     )
 
     yield
+
     # Shutdown
     logger.info("Shutdown")
+    await httpx_client_manager.stop()
 
-    await http_client_manager.stop()
 
-
-app = FastAPI()
 app = FastAPI(lifespan=lifespan)
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    # We point to "app.main:app" so uvicorn knows where the instance is
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
-
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,3 +38,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    # Keep ASGI import target explicit for module-based startup.
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

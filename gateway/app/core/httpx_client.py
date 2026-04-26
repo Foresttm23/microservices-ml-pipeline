@@ -1,11 +1,10 @@
 from typing import Any
 
+from app.core.exceptions import SessionNotInitializedException
 from httpx import AsyncClient
 
-from .exceptions import SessionNotInitializedException
 
-
-class HTTPClientManager:
+class HTTPXClientManager:
     def __init__(self):
         self._client: AsyncClient | None = None
 
@@ -25,4 +24,4 @@ class HTTPClientManager:
         return self._client
 
 
-http_client_manager = HTTPClientManager()
+httpx_client_manager = HTTPXClientManager()
