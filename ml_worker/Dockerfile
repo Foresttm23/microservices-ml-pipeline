@@ -12,7 +12,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
 # --- Stage 2: Runtime ---
-FROM python:3.12-slim
+FROM python:3.13.5-slim
+
 # ML libraries often need libgomp for parallel processing
 RUN apt-get update && apt-get install -y libgomp1 netcat-openbsd && rm -rf /var/lib/apt/lists/*
 

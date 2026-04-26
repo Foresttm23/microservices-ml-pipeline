@@ -15,7 +15,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
 # --- Stage 2: Runtime ---
-FROM python:3.12-slim
+FROM python:3.13.5-slim
+
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
