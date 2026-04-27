@@ -12,4 +12,5 @@ echo "Broker is ready!"
 
 # 2. Launch the Worker
 echo "Launching ML Worker..."
-exec uv run fastapi app/main.py
+cd ml_worker
+exec uv run python -m app.main

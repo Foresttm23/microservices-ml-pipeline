@@ -4,12 +4,13 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "loguru>=0.7.3",
+    "ty>=0.0.32",
 ]
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.409",
     "ruff>=0.15.12",
+    "ty>=0.0.32",
 ]
 
 [tool.uv.workspace]
@@ -18,3 +19,21 @@ members = [
     "ml_worker",
     "orchestrator",
 ]
+
+
+[tool.ty]
+# Replaces venvPath and venv
+# ty auto-detects .venv in the root, but you can be explicit:
+python-version = "3.13.5"
+
+# Replaces your "include" array
+include = [
+    "gateway",
+    "ml_worker",
+    "orchestrator"
+]
+
+# ty handles sub-packages as a "workspace"
+# You don't need "executionEnvironments" if the version is the same
+[tool.ty.workspace]
+members = ["gateway", "ml_worker", "orchestrator"]

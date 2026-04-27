@@ -1,8 +1,18 @@
-from fastapi import FastAPI
+from .consumers.task_consumer import TaskConsumer
+from .core.config import get_settings
+from .core.logging import setup_logging
+from .inference.runner import InferenceRunner
+from .models.loader import GeminiModelLoader
+from .publishers.result_publisher import ResultPublisher
 
-app = FastAPI()
+# TODO initialize the queue
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+setup_logging()
+
+settings = get_settings()
+loader = GeminiModelLoader(settings=settings)
+
+runner = InferenceRunner(loader=loader)
+publisher = ResultPublisher()
+task_consumer = TaskConsumer(runner=runner, publisher=publisher)
