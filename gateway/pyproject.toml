@@ -6,4 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.136.1",
+    "shared",
 ]
+
+[tool.uv.sources]
+shared = { workspace = true }
+

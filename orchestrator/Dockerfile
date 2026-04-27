@@ -4,15 +4,20 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
+COPY gateway/pyproject.toml ./gateway/pyproject.toml
+COPY ml_worker/pyproject.toml ./ml_worker/pyproject.toml
+COPY orchestrator/pyproject.toml ./orchestrator/pyproject.toml
+COPY shared/pyproject.toml ./shared/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --all-packages --no-install-project --no-dev
 
 COPY orchestrator/ ./orchestrator/
+COPY shared/ ./shared/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --all-packages --no-dev
 
 # --- Stage 2: Runtime ---
-FROM python:3.12-slim
+FROM python:3.13.5-slim
 # Install 'netcat' so start.sh can ping the DB/Queue
 RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
@@ -22,6 +27,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy orchestrator code and start script
 COPY orchestrator/ ./orchestrator/
+COPY shared/ ./shared/
 RUN chmod +x orchestrator/start.sh
 
 # Entrypoint uses the script

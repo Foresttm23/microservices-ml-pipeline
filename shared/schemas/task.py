@@ -14,3 +14,4 @@ class TaskMessage(BaseModel):
         default=None, description="Optional Gemini model override"
     )
     metadata: dict[str, Any] = Field(default_factory=dict)
+

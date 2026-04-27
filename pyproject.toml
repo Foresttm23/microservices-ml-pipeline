@@ -16,6 +16,7 @@ dev = [
 [tool.uv.workspace]
 members = [
     "gateway",
+    "shared",
     "ml_worker",
     "orchestrator",
 ]
@@ -29,6 +30,7 @@ python-version = "3.13.5"
 # Replaces your "include" array
 include = [
     "gateway",
+    "shared",
     "ml_worker",
     "orchestrator"
 ]
@@ -36,4 +38,4 @@ include = [
 # ty handles sub-packages as a "workspace"
 # You don't need "executionEnvironments" if the version is the same
 [tool.ty.workspace]
-members = ["gateway", "ml_worker", "orchestrator"]
+members = ["gateway", "shared", "ml_worker", "orchestrator"]

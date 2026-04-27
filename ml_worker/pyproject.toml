@@ -9,10 +9,14 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.13.3",
     "pydantic-settings>=2.11.0",
+    "shared",
 ]
 
 
 [tool.uv]
 managed = true
 package = true
+
+[tool.uv.sources]
+shared = { workspace = true }
 
