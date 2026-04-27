@@ -7,4 +7,5 @@ echo "--- Gateway Startup ---"
 # add a check here to ensure the Orchestrator is up first.
 
 echo "Launching Gateway..."
-exec uv run fastapi app/main.py
+cd gateway
+exec uv run python -m app.main

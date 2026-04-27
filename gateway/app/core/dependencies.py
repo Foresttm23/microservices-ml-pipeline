@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from httpx import AsyncClient
 
 from .httpx_client import httpx_client_manager

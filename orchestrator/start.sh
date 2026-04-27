@@ -17,4 +17,5 @@ uv run alembic upgrade head
 # 3. Launch the Service
 # Use 'python -m' to ensure imports work correctly in the monorepo
 echo "Launching Orchestrator..."
-exec uv run fastapi app/main.py
+cd orchestrator
+exec uv run python -m app.main

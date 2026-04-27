@@ -24,6 +24,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy the actual gateway code
 COPY gateway/ ./gateway/
 
-RUN chmod +x ml_worker/start.sh
+RUN chmod +x gateway/start.sh
 
 ENTRYPOINT ["gateway/start.sh"]

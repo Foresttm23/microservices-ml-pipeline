@@ -3,11 +3,11 @@ from contextlib import asynccontextmanager
 
 import httpx
 import uvicorn
-from app.api.v1 import health, query
-from app.core.exception_handlers import register_exception_handlers
-from app.core.httpx_client import httpx_client_manager
-from app.core.logging import setup_logging
-from app.middleware import RequestContextMiddleware
+from .api.v1 import health, query
+from .core.exception_handlers import register_exception_handlers
+from .core.httpx_client import httpx_client_manager
+from .core.logging import setup_logging
+from .middleware import RequestContextMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
@@ -39,7 +39,7 @@ register_exception_handlers(app)
 app.add_middleware(RequestContextMiddleware)
 
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore[arg-type]
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],

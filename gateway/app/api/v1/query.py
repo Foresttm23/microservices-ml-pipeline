@@ -1,5 +1,5 @@
-from app.core.dependencies import HTTPXClientDep
-from app.middleware import build_context_headers
+from ...core.dependencies import HTTPXClientDep
+from ...middleware import build_context_headers
 from fastapi import APIRouter, Request, Response
 from loguru import logger
 

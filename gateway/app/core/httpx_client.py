@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.core.exceptions import SessionNotInitializedException
+from .exceptions import SessionNotInitializedException
 from httpx import AsyncClient
 
 
