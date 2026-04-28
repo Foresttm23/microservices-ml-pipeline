@@ -58,7 +58,7 @@ A high-performance, asynchronous ML pipeline for quiz management and real-time r
 * Handles cross-domain logic (e.g., Calling DB and then calling the Queue).
 * Returns **Pydantic Schemas** for the API layer.
 
-### Directory Structure
+### Directory Structure example
 
 ```text
 /orchestrator
