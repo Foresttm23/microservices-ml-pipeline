@@ -12,10 +12,9 @@ echo "Database is ready!"
 
 # 2. Run Migrations
 echo "Applying database migrations..."
-uv run alembic upgrade head
+uv run alembic -c orchestrator/alembic.ini upgrade head
 
 # 3. Launch the Service
 # Use 'python -m' to ensure imports work correctly in the monorepo
 echo "Launching Orchestrator..."
-cd orchestrator
-exec uv run python -m app.main
+exec uv run python -m orchestrator.app.main

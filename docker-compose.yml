@@ -1,32 +1,83 @@
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - path: .env
+        required: false
+      - path: orchestrator/.env
+        required: false
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
   gateway:
     env_file:
-      - .env
-      - gateway/.env
+      - path: .env
+        required: false
+      - path: gateway/.env
+        required: false
     build:
       context: .
       dockerfile: gateway/Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8080:8000"  # Host 8080 -> Container 8000
 
   orchestrator:
     env_file:
-      - .env
-      - orchestrator/.env
+      - path: .env
+        required: false
+      - path: orchestrator/.env
+        required: false
     build:
       context: .
       dockerfile: orchestrator/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8081:8000"  # Host 8081 -> Container 8000
 
   ml_worker:
     env_file:
-      - .env
-      - ml_worker/.env
+      - path: .env
+        required: false
+      - path: ml_worker/.env
+        required: false
     build:
       context: .
       dockerfile: ml_worker/Dockerfile
-    environment:
-      - PORT=8000    # We force it to 8000 inside Docker
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8082:8000"  # Host 8082 -> Container 8000
+
+volumes:
+  postgres_data:
+  redis_data:

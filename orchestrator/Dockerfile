@@ -1,5 +1,9 @@
 # --- Stage 1: Builder ---
-FROM ghcr.io/astral-sh/uv:0.10.9 AS builder
+FROM python:3.13.5-slim AS builder
+
+# Copy uv from the official image into our python-slim image
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
@@ -21,6 +25,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13.5-slim
 # Install 'netcat' so start.sh can ping the DB/Queue
 RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
 
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv

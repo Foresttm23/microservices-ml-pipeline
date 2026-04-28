@@ -7,5 +7,4 @@ echo "--- Gateway Startup ---"
 # add a check here to ensure the Orchestrator is up first.
 
 echo "Launching Gateway..."
-cd gateway
-exec uv run python -m app.main
+exec uv run python -m gateway.app.main

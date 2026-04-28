@@ -1,5 +1,9 @@
 # --- Stage 1: Builder ---
-FROM ghcr.io/astral-sh/uv:0.10.9 AS builder
+FROM python:3.13.5-slim AS builder
+
+# Copy uv from the official image into our python-slim image
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
@@ -23,6 +27,8 @@ FROM python:3.13.5-slim
 # ML libraries often need libgomp for parallel processing
 RUN apt-get update && apt-get install -y libgomp1 netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
@@ -32,4 +38,5 @@ COPY ml_worker/ ./ml_worker/
 COPY shared/ ./shared/
 RUN chmod +x ml_worker/start.sh
 
+# Entrypoint uses the script
 ENTRYPOINT ["ml_worker/start.sh"]

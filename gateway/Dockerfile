@@ -1,5 +1,9 @@
-# --- Stage 1: Build the environment ---
-FROM ghcr.io/astral-sh/uv:0.10.9 AS builder
+# --- Stage 1: Builder ---
+FROM python:3.13.5-slim AS builder
+
+# Copy uv from the official image into our python-slim image
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
 
@@ -23,6 +27,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- Stage 2: Runtime ---
 FROM python:3.13.5-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
@@ -30,7 +36,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy the actual gateway code
 COPY gateway/ ./gateway/
 COPY shared/ ./shared/
-
 RUN chmod +x gateway/start.sh
 
+# Entrypoint uses the script
 ENTRYPOINT ["gateway/start.sh"]

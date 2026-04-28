@@ -12,5 +12,4 @@ echo "Broker is ready!"
 
 # 2. Launch the Worker
 echo "Launching ML Worker..."
-cd ml_worker
-exec uv run python -m app.main
+exec uv run python -m ml_worker.app.main

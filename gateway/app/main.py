@@ -52,4 +52,4 @@ app.add_middleware(
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     # Keep ASGI import target explicit for module-based startup.
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("gateway.app.main:app", host="0.0.0.0", port=port, reload=True)
