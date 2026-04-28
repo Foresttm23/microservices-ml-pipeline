@@ -1,5 +1,5 @@
-from messaging import RedisNamespace, RedisPubSub, RedisQueue, RedisResource
-from schemas import ResultMessage, TaskMessage
+from .messaging import RedisNamespace, RedisPubSub, RedisQueue, RedisResource
+from .schemas import ResultMessage, TaskMessage
 
 __all__ = [
     "TaskMessage",

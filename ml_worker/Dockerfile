@@ -14,7 +14,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY ml_worker/ ./ml_worker/
 COPY shared/ ./shared/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --all-packages --no-dev
+    uv sync --frozen --all-packages --no-dev && \
+    uv pip install -e ./shared
 
 # --- Stage 2: Runtime ---
 FROM python:3.13.5-slim

@@ -15,6 +15,5 @@ managed = true
 package = true
 
 
-[tool.setuptools]
-# Explicitly list the packages to include
-packages = ["schemas", "messaging", "core"]
+[tool.setuptools.packages.find]
+include = ["shared*"]
