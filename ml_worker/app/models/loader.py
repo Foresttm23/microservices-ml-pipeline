@@ -2,11 +2,12 @@ from typing import Any
 
 from httpx import AsyncClient, HTTPError
 
-from ..core.config import Settings
+from ..core.config import GeminiSettings
+from ..utils.gemini import extract_text_from_gemini_response
 
 
 class GeminiModelLoader:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: GeminiSettings):
         self._settings = settings
 
     async def generate_text(
@@ -53,23 +54,8 @@ class GeminiModelLoader:
 
             data = response.json()
 
-        text = _extract_text(data)
+        text = extract_text_from_gemini_response(data)
         if not text:
             raise RuntimeError("Gemini response did not include text output")
 
         return text, resolved_model, False
-
-
-def _extract_text(data: dict[str, Any]) -> str | None:
-    candidates = data.get("candidates")
-    if not candidates:
-        return None
-
-    first = candidates[0]
-    content = first.get("content") or {}
-    parts = content.get("parts") or []
-    for part in parts:
-        text = part.get("text")
-        if text:
-            return str(text)
-    return None

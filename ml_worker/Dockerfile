@@ -24,8 +24,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- Stage 2: Runtime ---
 FROM python:3.13.5-slim
 
-# ML libraries often need libgomp for parallel processing
-RUN apt-get update && apt-get install -y libgomp1 netcat-openbsd && rm -rf /var/lib/apt/lists/*
+# ML libraries often need libgomp for parallel processing (currently gemini api is used)
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
 

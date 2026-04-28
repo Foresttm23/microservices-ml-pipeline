@@ -10,6 +10,7 @@ from loguru import logger
 from shared.core.logging import setup_logging
 
 from .api.v1 import health, query
+from .core.config import get_gateway_settings
 from .core.exception_handlers import register_exception_handlers
 from .core.httpx_client import httpx_client_manager
 from .middleware import RequestContextMiddleware
@@ -21,9 +22,13 @@ async def lifespan(app: FastAPI):
 
     # Startup
     logger.info("Startup")
+    settings = get_gateway_settings()
     httpx_client_manager.start(
-        timeout=httpx.Timeout(10.0),
-        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+        timeout=httpx.Timeout(settings.HTTPX_TIMEOUT_SECONDS),
+        limits=httpx.Limits(
+            max_connections=settings.HTTPX_MAX_CONNECTIONS,
+            max_keepalive_connections=settings.HTTPX_MAX_KEEPALIVE_CONNECTIONS,
+        ),
     )
 
     yield

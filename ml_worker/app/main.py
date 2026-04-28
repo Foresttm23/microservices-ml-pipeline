@@ -8,19 +8,45 @@ from shared.messaging import RedisQueue
 from shared.messaging.names import RedisNamespace
 
 from .consumers.queue_consumer import QueueConsumer
-from .core.config import Settings, get_settings
+from .core.config import GeminiSettings, get_gemini_settings
 from .inference.runner import InferenceRunner
 from .models.loader import GeminiModelLoader
 from .processors.task_processor import TaskProcessor
 from .publishers.queue_publisher import ResultPublisher
 
 
+def _init_queues(
+    settings: GeminiSettings,
+) -> tuple[RedisQueue, RedisQueue]:
+    """
+    Initialize Redis queues for task and result messaging.
+    """
+    redis_client = Redis.from_url(settings.REDIS_URL)
+    task_queue = RedisQueue(client=redis_client, name=RedisNamespace.TASK_QUEUE)
+    result_queue = RedisQueue(client=redis_client, name=RedisNamespace.RESULT_QUEUE)
+
+    return task_queue, result_queue
+
+
+def _init_processor(
+    *,
+    runner: InferenceRunner,
+    result_queue: RedisQueue,
+) -> TaskProcessor:
+    """
+    Initialize task processor with inference runner and result publisher.
+    """
+    publisher = ResultPublisher(queue=result_queue)
+    task_processor = TaskProcessor(runner=runner, publisher=publisher)
+
+    return task_processor
+
+
 async def main():
-    """Main entrypoint for ml_worker service."""
     setup_logging()
     logger.info("Starting ML Worker service")
 
-    settings = get_settings()
+    settings = get_gemini_settings()
 
     # Initialize model loader and runner
     loader = GeminiModelLoader(settings=settings)
@@ -41,33 +67,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-def _init_queues(
-    settings: Settings,
-) -> tuple[RedisQueue, RedisQueue]:
-    """
-    :param settings:
-    :return: task_queue, result_queue
-    """
-    redis_client = Redis.from_url(settings.REDIS_URL)
-    task_queue = RedisQueue(client=redis_client, name=RedisNamespace.TASK_QUEUE)
-    result_queue = RedisQueue(client=redis_client, name=RedisNamespace.RESULT_QUEUE)
-
-    return task_queue, result_queue
-
-
-def _init_processor(
-    *,
-    runner: InferenceRunner,
-    result_queue: RedisQueue,
-) -> TaskProcessor:
-    """
-    :param runner:
-    :param result_queue:
-    :return: task_processor
-    """
-    publisher = ResultPublisher(queue=result_queue)
-    task_processor = TaskProcessor(runner=runner, publisher=publisher)
-
-    return task_processor

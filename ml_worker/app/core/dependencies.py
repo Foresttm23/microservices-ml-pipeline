@@ -6,14 +6,14 @@ from processors.task_processor import TaskConsumer
 from ..inference.runner import InferenceRunner
 from ..models.loader import GeminiModelLoader
 from ..publishers.queue_publisher import ResultPublisher
-from .config import Settings, get_settings
+from .config import GeminiSettings, get_gemini_settings
 
 
-def get_worker_settings() -> Settings:
-    return get_settings()
+def get_worker_settings() -> GeminiSettings:
+    return get_gemini_settings()
 
 
-WorkerSettingsDep = Annotated[Settings, Depends(get_worker_settings)]
+WorkerSettingsDep = Annotated[GeminiSettings, Depends(get_worker_settings)]
 
 
 def get_model_loader(
