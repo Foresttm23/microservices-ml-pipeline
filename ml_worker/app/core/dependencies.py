@@ -2,10 +2,10 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from ..consumers.task_consumer import TaskConsumer
+from processors.task_processor import TaskConsumer
 from ..inference.runner import InferenceRunner
 from ..models.loader import GeminiModelLoader
-from ..publishers.result_publisher import ResultPublisher
+from ..publishers.queue_publisher import ResultPublisher
 from .config import Settings, get_settings
 
 

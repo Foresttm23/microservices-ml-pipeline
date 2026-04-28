@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0)
     ML_WORKER_DRY_RUN: bool = Field(default=False)
 
+    # Redis
+    REDIS_URL: str = Field(default="redis://localhost:6379/0")
+
     @field_validator("GEMINI_API_BASE", mode="before")
     @classmethod
     def _normalize_api_base(cls, value: object) -> object:

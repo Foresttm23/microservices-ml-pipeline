@@ -1,7 +1,8 @@
-from ..inference.runner import InferenceRunner
-from ..publishers.result_publisher import ResultPublisher
 from shared.schemas import ResultMessage
 from shared.schemas.task import TaskMessage
+
+from ..inference.runner import InferenceRunner
+from ..publishers.queue_publisher import ResultPublisher
 
 
 class TaskConsumer:
