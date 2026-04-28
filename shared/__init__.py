@@ -1,6 +1,11 @@
-from shared.schemas.result import ResultMessage
-from shared.schemas.task import TaskMessage
+from messaging import RedisNamespace, RedisPubSub, RedisQueue, RedisResource
+from schemas import ResultMessage, TaskMessage
 
-__all__ = ["TaskMessage", "ResultMessage"]
-
-
+__all__ = [
+    "TaskMessage",
+    "ResultMessage",
+    "RedisPubSub",
+    "RedisQueue",
+    "RedisResource",
+    "RedisNamespace",
+]

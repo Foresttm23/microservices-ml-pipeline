@@ -1,6 +1,6 @@
 from ..inference.runner import InferenceRunner
 from ..publishers.result_publisher import ResultPublisher
-from shared.schemas.result import ResultMessage
+from shared.schemas import ResultMessage
 from shared.schemas.task import TaskMessage
 
 

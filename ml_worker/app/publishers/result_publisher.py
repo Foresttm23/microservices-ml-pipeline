@@ -1,6 +1,6 @@
 from loguru import logger
 
-from shared.schemas.result import ResultMessage
+from shared.schemas import ResultMessage
 
 
 # TODO if queue broker and implementation exists, implements the connecting and publishing to the class

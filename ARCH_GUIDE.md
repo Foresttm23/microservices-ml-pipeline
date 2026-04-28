@@ -36,7 +36,7 @@ A high-performance, asynchronous ML pipeline for quiz management and real-time r
 ## 3. Data Flow (The "Queue Conversation")
 
 1. **Client POST /quiz** -> Gateway forwards to Orchestrator.
-2. **Orchestrator** -> Saves record to Postgres (`PENDING`) -> Pushes task to **RabbitMQ**.
+2. **Orchestrator** -> Saves record to Postgres (`PENDING`) -> Pushes task to **Redis Queue**.
 3. **Orchestrator** -> Returns `202 Accepted` to Gateway -> Gateway returns to Client.
 4. **ML Worker** -> Consumes task -> Runs model -> Pushes JSON to `result_queue`.
 5. **Orchestrator Result Listener** -> Consumes from `result_queue`:

@@ -3,14 +3,16 @@ from contextlib import asynccontextmanager
 
 import httpx
 import uvicorn
-from .api.v1 import health, query
-from .core.exception_handlers import register_exception_handlers
-from .core.httpx_client import httpx_client_manager
-from .core.logging import setup_logging
-from .middleware import RequestContextMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+
+from shared.core.logging import setup_logging
+
+from .api.v1 import health, query
+from .core.exception_handlers import register_exception_handlers
+from .core.httpx_client import httpx_client_manager
+from .middleware import RequestContextMiddleware
 
 
 @asynccontextmanager

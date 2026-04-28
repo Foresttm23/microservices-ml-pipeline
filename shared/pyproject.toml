@@ -5,10 +5,16 @@ description = "Shared cross-service contracts and utilities"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "loguru>=0.7.3",
     "pydantic>=2.13.3",
+    "redis>=5.0.1",
 ]
 
 [tool.uv]
 managed = true
 package = true
 
+
+[tool.setuptools]
+# Explicitly list the packages to include
+packages = ["schemas", "messaging", "core"]
