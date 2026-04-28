@@ -5,14 +5,13 @@ from ..inference.runner import InferenceRunner
 from ..publishers.queue_publisher import ResultPublisher
 
 
-class TaskConsumer:
+class TaskProcessor:
     def __init__(self, runner: InferenceRunner, publisher: ResultPublisher):
         self._runner = runner
         self._publisher = publisher
 
-    async def consume(self, task: TaskMessage) -> ResultMessage:
+    async def process(self, task: TaskMessage) -> ResultMessage:
         result = await self._runner.run(task)
         await self._publisher.publish(result)
         return result
 
-    # Todo queue consumer

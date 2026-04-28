@@ -1,5 +1,8 @@
 services:
   gateway:
+    env_file:
+      - .env
+      - gateway/.env
     build:
       context: .
       dockerfile: gateway/Dockerfile
@@ -7,6 +10,9 @@ services:
       - "8080:8000"  # Host 8080 -> Container 8000
 
   orchestrator:
+    env_file:
+      - .env
+      - orchestrator/.env
     build:
       context: .
       dockerfile: orchestrator/Dockerfile
@@ -14,6 +20,9 @@ services:
       - "8081:8000"  # Host 8081 -> Container 8000
 
   ml_worker:
+    env_file:
+      - .env
+      - ml_worker/.env
     build:
       context: .
       dockerfile: ml_worker/Dockerfile
