@@ -1,20 +1,48 @@
-import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
-from shared.core.logging import setup_logging
-
-setup_logging()
-
-app = FastAPI()
+from orchestrator.app.core import get_settings
+from orchestrator.app.db import close_db, init_db
+from shared.core import register_exception_handlers, setup_logging
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+
+    # Startup
+    logger.info("Startup")
+    orchestrator_settings = get_settings()
+    init_db(orchestrator_settings, pool_size=20, max_overflow=10)
+
+    yield
+
+    # Shutdown
+    logger.info("Shutdown")
+    await close_db()
+
+
+app = FastAPI(lifespan=lifespan)
+register_exception_handlers(app)
+
+app.add_middleware(
+    CORSMiddleware,  # type: ignore[arg-type]
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("orchestrator.app.main:app", host="0.0.0.0", port=port, reload=True)
+    orchestrator_settings = get_settings()
+    uvicorn.run(
+        "orchestrator.app.main:app",
+        host="0.0.0.0",
+        port=orchestrator_settings.PORT,
+        reload=True,
+    )

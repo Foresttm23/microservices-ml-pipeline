@@ -7,7 +7,7 @@ from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base, CreatedAtMixin, UpdatedAtMixin
+from . import Base, CreatedAtMixin, UpdatedAtMixin
 
 
 class ResponseModel(Base, CreatedAtMixin, UpdatedAtMixin):
