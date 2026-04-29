@@ -5,7 +5,7 @@ echo "--- Orchestrator Startup ---"
 
 # 1. Wait for Postgres (Adjust DB_HOST as needed in docker-compose)
 echo "Waiting for Database..."
-while ! nc -z $DB_HOST 5432; do
+while ! nc -z "$DB_HOST" "$DB_PORT"; do
   sleep 0.5
 done
 echo "Database is ready!"
