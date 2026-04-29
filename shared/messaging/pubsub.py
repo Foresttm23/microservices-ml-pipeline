@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from .base import RedisResource
+from . import RedisResource
 
 
 class RedisPubSub(RedisResource):

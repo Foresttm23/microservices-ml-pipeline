@@ -4,7 +4,7 @@ from typing import Awaitable, cast
 
 import redis.asyncio as redis
 
-from .base import RedisResource
+from . import RedisResource
 
 
 class RedisQueue(RedisResource):

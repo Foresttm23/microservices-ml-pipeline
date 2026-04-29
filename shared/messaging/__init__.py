@@ -1,6 +1,12 @@
 from .base import RedisResource
+from .names import RedisNamespace, result_channel
 from .pubsub import RedisPubSub
 from .queue import RedisQueue
-from .names import RedisNamespace
 
-__all__ = ["RedisPubSub", "RedisQueue", "RedisResource", "RedisNamespace"]
+__all__ = [
+	"RedisPubSub",
+	"RedisQueue",
+	"RedisResource",
+	"RedisNamespace",
+	"result_channel",
+]
