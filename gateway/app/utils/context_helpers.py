@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from fastapi import Request
 
-from ..core.config import CORRELATION_ID_HEADER, USER_ID_HEADER
+from ..core import CORRELATION_ID_HEADER, USER_ID_HEADER
 
 
 def extract_correlation_id(request: Request) -> str:

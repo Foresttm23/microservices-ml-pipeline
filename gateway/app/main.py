@@ -7,12 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from shared.core.logging import setup_logging
+from shared.core import register_exception_handlers, setup_logging
 
-from .api.v1 import health, query
-from .core.config import get_gateway_settings
-from .core.exception_handlers import register_exception_handlers
-from .core.httpx_client import httpx_client_manager
+from .api.v1 import health_router, query_router
+from .core import close_httpx, get_settings, init_httpx
 from .middleware import RequestContextMiddleware
 
 
@@ -22,8 +20,8 @@ async def lifespan(app: FastAPI):
 
     # Startup
     logger.info("Startup")
-    settings = get_gateway_settings()
-    httpx_client_manager.start(
+    settings = get_settings()
+    init_httpx(
         timeout=httpx.Timeout(settings.HTTPX_TIMEOUT_SECONDS),
         limits=httpx.Limits(
             max_connections=settings.HTTPX_MAX_CONNECTIONS,
@@ -35,12 +33,12 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutdown")
-    await httpx_client_manager.stop()
+    await close_httpx()
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(health.router)
-app.include_router(query.router)
+app.include_router(health_router)
+app.include_router(query_router)
 
 register_exception_handlers(app)
 app.add_middleware(RequestContextMiddleware)

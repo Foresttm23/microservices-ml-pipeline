@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Request, Response
 from loguru import logger
 
-from ...core.config import get_gateway_settings
-from ...core.dependencies import HTTPXClientDep
-from ...utils.context_helpers import build_context_headers
+from ...core import HTTPXClientDep, get_settings
+from ...utils import build_context_headers
 
 router = APIRouter()
 
@@ -14,7 +13,7 @@ async def proxy_to_orchestrator(
 ):
     logger.info(f"Proxying pipeline {pipeline_id}")
 
-    settings = get_gateway_settings()
+    settings = get_settings()
     orchestrator_url = f"{settings.ORCHESTRATOR_URL}/api/run/{pipeline_id}"
 
     # 1. Get the raw body bytes instead of parsing JSON
