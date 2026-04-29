@@ -42,6 +42,6 @@ class GatewaySettings(BaseSettings):
 
 
 @lru_cache
-def get_gateway_settings() -> GatewaySettings:
+def get_settings() -> GatewaySettings:
     """Get cached gateway settings."""
     return GatewaySettings()

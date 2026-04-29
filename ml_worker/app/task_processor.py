@@ -1,8 +1,8 @@
 from shared.schemas import ResultMessage
 from shared.schemas.task import TaskMessage
 
-from ..inference.runner import InferenceRunner
-from ..publishers.queue_publisher import ResultPublisher
+from inference.runner import InferenceRunner
+from publishers.queue_publisher import ResultPublisher
 
 
 class TaskProcessor:
@@ -14,4 +14,3 @@ class TaskProcessor:
         result = await self._runner.run(task)
         await self._publisher.publish(result)
         return result
-

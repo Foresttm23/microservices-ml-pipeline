@@ -1,6 +1,6 @@
 from typing import Any
 
-from .exceptions import SessionNotInitializedException
+from shared.core import SessionNotInitializedException
 from httpx import AsyncClient
 
 
@@ -25,3 +25,11 @@ class HTTPXClientManager:
 
 
 httpx_client_manager = HTTPXClientManager()
+
+
+def init_httpx(**pool_kwargs: Any) -> None:
+    httpx_client_manager.start(**pool_kwargs)
+
+
+async def close_httpx() -> None:
+    await httpx_client_manager.stop()

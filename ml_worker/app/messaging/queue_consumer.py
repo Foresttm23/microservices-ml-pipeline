@@ -5,7 +5,7 @@ from loguru import logger
 from shared.messaging import RedisQueue
 from shared.schemas import TaskMessage
 
-from ..processors.task_processor import TaskProcessor
+from ..task_processor import TaskProcessor
 
 
 class QueueConsumer:
@@ -23,12 +23,17 @@ class QueueConsumer:
                         # Deserialize message to TaskMessage
                         task_dict = json.loads(message)
                         task = TaskMessage(**task_dict)
-                        logger.info("Received task interaction_id={}", task.interaction_id)
+                        logger.info(
+                            "Received task interaction_id={}", task.interaction_id
+                        )
 
                         # Process the task
                         result = await self._task_processor.process(task)
-                        logger.info("Task completed interaction_id={} status={}",
-                                   result.interaction_id, result.status)
+                        logger.info(
+                            "Task completed interaction_id={} status={}",
+                            result.interaction_id,
+                            result.status,
+                        )
                     except json.JSONDecodeError as e:
                         logger.error("Failed to deserialize task message: {}", e)
                     except Exception as e:

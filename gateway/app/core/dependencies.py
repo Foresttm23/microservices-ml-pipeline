@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 from httpx import AsyncClient
 
-from .httpx_client import httpx_client_manager
+from . import httpx_client_manager
 
 
 async def get_httpx_client() -> AsyncClient:
