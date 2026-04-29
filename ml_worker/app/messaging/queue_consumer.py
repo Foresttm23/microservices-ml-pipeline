@@ -1,11 +1,12 @@
 import asyncio
 import json
+
 from loguru import logger
 
 from shared.messaging import RedisQueue
 from shared.schemas import TaskMessage
 
-from ..task_processor import TaskProcessor
+from .. import TaskProcessor
 
 
 class QueueConsumer:

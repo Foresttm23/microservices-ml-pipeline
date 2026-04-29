@@ -3,16 +3,12 @@ import asyncio
 from loguru import logger
 from redis.asyncio import Redis
 
-from shared.core.logging import setup_logging
-from shared.messaging import RedisQueue
-from shared.messaging.names import RedisNamespace
+from shared.core import setup_logging
+from shared.messaging import RedisNamespace, RedisQueue
 
-from .consumers.queue_consumer import QueueConsumer
-from .core.config import GeminiSettings, get_gemini_settings
-from .inference.runner import InferenceRunner
-from .models.loader import GeminiModelLoader
-from .processors.task_processor import TaskProcessor
-from .publishers.queue_publisher import ResultPublisher
+from . import GeminiModelLoader, InferenceRunner, TaskProcessor
+from .core import GeminiSettings, get_gemini_settings
+from .messaging import QueueConsumer, ResultPublisher
 
 
 def _init_queues(

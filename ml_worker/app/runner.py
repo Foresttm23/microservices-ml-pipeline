@@ -1,8 +1,8 @@
 from uuid import uuid4
 
-from ..models.loader import GeminiModelLoader
-from shared.schemas import ResultMessage
-from shared.schemas.task import TaskMessage
+from shared.schemas import ResultMessage, TaskMessage
+
+from . import GeminiModelLoader
 
 
 class InferenceRunner:
