@@ -1,27 +1,17 @@
 import asyncio
 
 from loguru import logger
-from redis.asyncio import Redis
 
 from shared.core import setup_logging
-from shared.messaging import RedisNamespace, RedisQueue
+from shared.messaging import (
+    RedisQueue,
+    get_result_queue,
+    get_task_queue,
+)
 
 from . import GeminiModelLoader, InferenceRunner, TaskProcessor
-from .core import GeminiSettings, get_gemini_settings
+from .core import get_gemini_settings
 from .messaging import QueueConsumer, ResultPublisher
-
-
-def _init_queues(
-    settings: GeminiSettings,
-) -> tuple[RedisQueue, RedisQueue]:
-    """
-    Initialize Redis queues for task and result messaging.
-    """
-    redis_client = Redis.from_url(settings.REDIS_URL)
-    task_queue = RedisQueue(client=redis_client, name=RedisNamespace.TASK_QUEUE)
-    result_queue = RedisQueue(client=redis_client, name=RedisNamespace.RESULT_QUEUE)
-
-    return task_queue, result_queue
 
 
 def _init_processor(
@@ -49,7 +39,8 @@ async def main():
     runner = InferenceRunner(loader=loader)
 
     # Initialize Redis client and queues
-    task_queue, result_queue = _init_queues(settings)
+    task_queue = get_task_queue()
+    result_queue = get_result_queue()
 
     # Initialize publisher and processor
     task_processor = _init_processor(runner=runner, result_queue=result_queue)

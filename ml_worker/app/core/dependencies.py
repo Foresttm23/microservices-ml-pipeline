@@ -2,6 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from shared.messaging import get_result_queue
+
 from .. import GeminiModelLoader, InferenceRunner, TaskProcessor
 from ..messaging import ResultPublisher
 from . import GeminiSettings, get_gemini_settings
@@ -32,9 +34,9 @@ def get_inference_runner(
 InferenceRunnerDep = Annotated[InferenceRunner, Depends(get_inference_runner)]
 
 
-# Todo add queue dependency and pass it to the publisher
 def get_result_publisher() -> ResultPublisher:
-    return ResultPublisher()
+    result_queue = get_result_queue()
+    return ResultPublisher(queue=result_queue)
 
 
 ResultPublisherDep = Annotated[ResultPublisher, Depends(get_result_publisher)]
