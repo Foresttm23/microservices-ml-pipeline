@@ -19,16 +19,24 @@
     - FastAPI app with health and proxy endpoints. The proxy endpoint forwards pipeline/run requests to the orchestrator (see `gateway/app/api/v1/query.py`).
     - Request context middleware and an HTTPX client manager are implemented (`gateway/app/middleware.py`, `gateway/app/core/httpx_client.py`).
     - Some WebSocket/pubsub bridge modules exist as scaffolding (schemas and service placeholders), but the fully working WebSocket Redis subscriber/connection manager are minimal/partial.
+    - Notes / recent specifics:
+      - HTTPX lifecycle helpers are exposed from `gateway/app/core/httpx_client.py` as `init_httpx` and `close_httpx` and are wired in `gateway/app/main.py` lifespan.
+      - The middleware module re-exports `build_context_headers` for backward compatibility but the canonical helpers live in `gateway/app/utils/context_helpers.py` (see the deprecation comment in `gateway/app/middleware.py`).
   - `orchestrator`:
     - Project layout follows the intended layered structure (folders under `orchestrator/app/` are present).
     - `start.sh` waits for Postgres and runs Alembic migrations before launching the FastAPI app.
     - The HTTP API surface is minimal today (root GET), and higher-level endpoints and service logic are still to be implemented.
+    - Notes / recent specifics:
+      - `orchestrator/app/api/v1/health.py` exists but currently contains no route handlers (API surface remains minimal).
   - `ml_worker`:
     - An asyncio-based worker is implemented (`ml_worker/app/main.py`) that initializes a model loader, inference runner, and a `QueueConsumer`.
     - Uses shared Redis queue abstractions (`shared/messaging/queue.py`) to read from `task_queue` and publish to `result_queue`.
     - The worker `start.sh` waits for Redis before launching the process.
   - `shared`:
     - Messaging primitives for Redis queues and pub/sub exist (`shared/messaging/queue.py`, `shared/messaging/pubsub.py`, `shared/messaging/names.py`).
+    - Notes / recent specifics:
+      - `shared/messaging/__init__.py` re-exports `RedisResource`, `RedisQueue`, `RedisPubSub`, `RedisNamespace`, and `result_channel` — prefer importing these from the package root.
+      - `RedisQueue.dequeue()` returns raw bytes (or None) and `RedisPubSub.listen()` yields str|bytes; calling code is responsible for decoding/deserializing (see `ml_worker/app/messaging/queue_consumer.py`).
 
   In short: the repository contains a working ML worker and shared messaging layer; the gateway implements HTTP proxying and middleware; orchestrator scaffolding and DB migration steps exist, but full orchestrator application logic (task creation, result consumption, DB repositories/services) is still in progress.
 
@@ -53,6 +61,10 @@
 - Keep ASGI import target style: `uvicorn.run("<service>.app.main:app", host="0.0.0.0", port=..., reload=True)` inside `if __name__ == "__main__"` blocks.
 - Root workspace dependency management uses the top-level `pyproject.toml` plus `uv.lock` and the Dockerfiles call `uv sync --frozen` in builder stages—preserve that flow.
 - Root workspace members are declared in `pyproject.toml` and should not be arbitrarily changed: `gateway`, `ml_worker`, `orchestrator`, `shared`.
+
+- Service lifecycle patterns to follow:
+  - The gateway uses `init_httpx(...)` and `close_httpx()` inside the FastAPI lifespan (see `gateway/app/main.py`) — new agents should prefer these helpers rather than constructing ad-hoc HTTPX clients.
+  - The request context helpers moved into `gateway/app/utils/context_helpers.py`; the older `gateway/app/middleware.py` exports are kept for backward compatibility but prefer the utils module.
 
 ## Orchestrator Design Rules (from ARCH_GUIDE) — current status
 
