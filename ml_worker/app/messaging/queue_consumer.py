@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 
@@ -6,7 +8,7 @@ from loguru import logger
 from shared.messaging import RedisQueue
 from shared.schemas import TaskMessage
 
-from .. import TaskProcessor
+from ..task_processor import TaskProcessor
 
 
 class QueueConsumer:

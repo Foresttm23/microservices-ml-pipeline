@@ -3,8 +3,8 @@ from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from .core import CORRELATION_ID_HEADER, USER_ID_HEADER
-from .utils import (
+from .core.config import CORRELATION_ID_HEADER, USER_ID_HEADER
+from .utils.context_helpers import (
     build_context_headers,
     extract_correlation_id,
     extract_user_id,

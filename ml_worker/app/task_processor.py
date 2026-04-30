@@ -1,7 +1,7 @@
 from shared.schemas import ResultMessage, TaskMessage
 
-from . import InferenceRunner
-from .messaging import ResultPublisher
+from .runner import InferenceRunner
+from .messaging.queue_publisher import ResultPublisher
 
 
 class TaskProcessor:

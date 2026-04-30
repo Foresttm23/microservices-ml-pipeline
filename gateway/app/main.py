@@ -9,8 +9,10 @@ from loguru import logger
 
 from shared.core import register_exception_handlers, setup_logging
 
-from .api.v1 import health_router, query_router
-from .core import close_httpx, get_settings, init_httpx
+from .api.v1.health import router as health_router
+from .api.v1.query import router as query_router
+from .core.config import get_settings
+from .core.httpx_client import close_httpx, init_httpx
 from .middleware import RequestContextMiddleware
 
 

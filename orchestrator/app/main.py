@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from orchestrator.app.core import get_settings
-from orchestrator.app.db import close_db, init_db
+from orchestrator.app.core.config import get_settings
+from orchestrator.app.db.session import close_db, init_db
 from shared.core import register_exception_handlers, setup_logging
 
 

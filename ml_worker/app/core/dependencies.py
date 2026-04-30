@@ -4,9 +4,11 @@ from fastapi import Depends
 
 from shared.messaging import get_result_queue
 
-from .. import GeminiModelLoader, InferenceRunner, TaskProcessor
-from ..messaging import ResultPublisher
-from . import GeminiSettings, get_gemini_settings
+from ..loader import GeminiModelLoader
+from ..runner import InferenceRunner
+from ..task_processor import TaskProcessor
+from ..messaging.queue_publisher import ResultPublisher
+from .config import GeminiSettings, get_gemini_settings
 
 
 def get_worker_settings() -> GeminiSettings:

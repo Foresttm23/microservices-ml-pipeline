@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from shared.schemas import ResultMessage, TaskMessage
 
-from . import GeminiModelLoader
+from .loader import GeminiModelLoader
 
 
 class InferenceRunner:

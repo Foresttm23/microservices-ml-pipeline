@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from orchestrator.app.core import OrchestratorSettings
+from orchestrator.app.core.config import OrchestratorSettings
 from shared.core import SessionNotInitializedException
 
 
