@@ -2,59 +2,14 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from orchestrator.schemas.log import LogResponse
+from orchestrator.schemas.response import ResponseResponse
+from shared.schemas import BaseSchema
 
 
-class LogBase(BaseModel):
-    """Base schema for logs."""
-
-    message: str = Field(..., description="Log message")
-    metadata_: dict = Field(default_factory=dict, description="Additional metadata")
-
-
-class LogCreate(LogBase):
-    """Schema for creating a log."""
-
-    query_id: UUID = Field(..., description="Reference to the query")
-
-
-class LogResponse(LogBase):
-    """Schema for log responses."""
-
-    id: UUID = Field(..., description="Log ID")
-    query_id: UUID = Field(..., description="Reference to the query")
-    created_at: datetime = Field(..., description="When the log was created")
-
-    class Config:
-        from_attributes = True
-
-
-class ResponseBase(BaseModel):
-    """Base schema for responses."""
-
-    content: str = Field(..., description="Response content")
-    tokens_used: Optional[int] = Field(None, description="Tokens used for the response")
-
-
-class ResponseCreate(ResponseBase):
-    """Schema for creating a response."""
-
-    query_id: UUID = Field(..., description="Reference to the query")
-
-
-class ResponseResponse(ResponseBase):
-    """Schema for response records."""
-
-    id: UUID = Field(..., description="Response ID")
-    query_id: UUID = Field(..., description="Reference to the query")
-    created_at: datetime = Field(..., description="When the response was created")
-    updated_at: datetime = Field(..., description="When the response was last updated")
-
-    class Config:
-        from_attributes = True
-
-
-class QueryBase(BaseModel):
+class QueryBase(BaseSchema):
     """Base schema for queries."""
 
     correlation_id: UUID = Field(..., description="Unique correlation ID for tracking")
@@ -69,7 +24,7 @@ class QueryCreate(QueryBase):
     pass
 
 
-class QueryUpdate(BaseModel):
+class QueryUpdate(BaseSchema):
     """Schema for updating a query."""
 
     state: Optional[str] = Field(None, description="Updated state")
@@ -82,7 +37,9 @@ class QueryResponse(QueryBase):
     id: UUID = Field(..., description="Query ID")
     created_at: datetime = Field(..., description="When the query was created")
     updated_at: datetime = Field(..., description="When the query was last updated")
-    responses: List[ResponseResponse] = Field(default_factory=list, description="Associated responses")
+    responses: List[ResponseResponse] = Field(
+        default_factory=list, description="Associated responses"
+    )
     logs: List[LogResponse] = Field(default_factory=list, description="Associated logs")
 
     class Config:
@@ -95,7 +52,7 @@ class QueryDetailResponse(QueryResponse):
     pass
 
 
-class QueryListResponse(BaseModel):
+class QueryListResponse(BaseSchema):
     """Lightweight query response for list endpoints."""
 
     id: UUID = Field(..., description="Query ID")
@@ -106,4 +63,3 @@ class QueryListResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
