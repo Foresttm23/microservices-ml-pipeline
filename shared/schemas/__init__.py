@@ -1,6 +1,5 @@
+from shared.schemas.base import BaseSchema
 from shared.schemas.result import ResultMessage
 from shared.schemas.task import TaskMessage
 
-__all__ = ["TaskMessage", "ResultMessage"]
-
-
+__all__ = ["TaskMessage", "ResultMessage", "BaseSchema"]

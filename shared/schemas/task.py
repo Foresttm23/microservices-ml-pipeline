@@ -1,9 +1,10 @@
 from typing import Any
 
 from pydantic import BaseModel, Field
+from shared.schemas import BaseSchema
 
 
-class TaskMessage(BaseModel):
+class TaskMessage(BaseSchema):
     prompt: str = Field(min_length=1, description="Prompt sent to Gemini")
     interaction_id: str | None = Field(
         default=None,
@@ -14,4 +15,3 @@ class TaskMessage(BaseModel):
         default=None, description="Optional Gemini model override"
     )
     metadata: dict[str, Any] = Field(default_factory=dict)
-
