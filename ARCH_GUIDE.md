@@ -46,6 +46,11 @@ A high-performance, asynchronous ML pipeline for quiz management and real-time r
 
 ## 4. Coding Standards (DDD Enforcement)
 
+### General Rules
+
+* Absolute imports across the project.
+* Blank __init__.py files except for the /shared/ directory, which acts as a common library for other services.
+
 ### Repository Layer Rules
 
 * Methods must return **Domain Entities**, not SQLAlchemy models.
@@ -57,15 +62,3 @@ A high-performance, asynchronous ML pipeline for quiz management and real-time r
 * Responsible for the **Unit of Work** (transaction management).
 * Handles cross-domain logic (e.g., Calling DB and then calling the Queue).
 * Returns **Pydantic Schemas** for the API layer.
-
-### Directory Structure example
-
-```text
-/orchestrator
-├── /app
-│   ├── /api/v1      # FastAPI Routers
-│   ├── /services    # Business Logic / Orchestration
-│   ├── /domain      # Entities & Value Objects
-│   ├── /repositories# Database Access
-│   ├── /schemas     # Pydantic DTOs
-│   └── /core        # Config, Exceptions, Logging
