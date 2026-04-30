@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from orchestrator.app.core.config import get_settings
-from orchestrator.app.db.session import close_db, init_db
+from orchestrator.core.config import get_settings
+from orchestrator.db.session import close_db, init_db
 from shared.core import register_exception_handlers, setup_logging
 
 
@@ -41,7 +41,7 @@ app.add_middleware(
 if __name__ == "__main__":
     orchestrator_settings = get_settings()
     uvicorn.run(
-        "orchestrator.app.main:app",
+        "orchestrator.main:app",
         host="0.0.0.0",
         port=orchestrator_settings.PORT,
         reload=True,

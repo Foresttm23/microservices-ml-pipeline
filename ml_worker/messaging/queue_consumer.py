@@ -8,7 +8,7 @@ from loguru import logger
 from shared.messaging import RedisQueue
 from shared.schemas import TaskMessage
 
-from ..task_processor import TaskProcessor
+from ml_worker.task_processor import TaskProcessor
 
 
 class QueueConsumer:

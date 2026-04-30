@@ -2,8 +2,8 @@ from typing import Any
 
 from httpx import AsyncClient, HTTPError
 
-from .core.config import GeminiSettings
-from .utils.gemini import extract_text_from_gemini_response
+from ml_worker.core.config import GeminiSettings
+from ml_worker.utils.gemini import extract_text_from_gemini_response
 
 
 class GeminiModelLoader:

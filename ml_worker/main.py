@@ -9,12 +9,12 @@ from shared.messaging import (
     get_task_queue,
 )
 
-from .loader import GeminiModelLoader
-from .runner import InferenceRunner
-from .task_processor import TaskProcessor
-from .core.config import get_gemini_settings
-from .messaging.queue_consumer import QueueConsumer
-from .messaging.queue_publisher import ResultPublisher
+from ml_worker.core.config import get_gemini_settings
+from ml_worker.loader import GeminiModelLoader
+from ml_worker.messaging.queue_consumer import QueueConsumer
+from ml_worker.messaging.queue_publisher import ResultPublisher
+from ml_worker.runner import InferenceRunner
+from ml_worker.task_processor import TaskProcessor
 
 
 def _init_processor(

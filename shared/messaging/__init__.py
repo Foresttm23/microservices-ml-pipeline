@@ -2,11 +2,11 @@ from functools import lru_cache
 
 from redis.asyncio import Redis
 
-from ..core import get_shared_settings
-from .base import RedisResource
-from .names import RedisNamespace, result_channel
-from .pubsub import RedisPubSub
-from .queue import RedisQueue
+from shared.core import get_shared_settings
+from shared.messaging.base import RedisResource
+from shared.messaging.names import RedisNamespace, result_channel
+from shared.messaging.pubsub import RedisPubSub
+from shared.messaging.queue import RedisQueue
 
 __all__ = [
     "RedisPubSub",

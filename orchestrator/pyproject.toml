@@ -16,3 +16,6 @@ dependencies = [
 [tool.uv.sources]
 shared = { workspace = true }
 
+[tool.setuptools]
+packages = ["orchestrator"]
+package-dir = { "orchestrator" = "." }

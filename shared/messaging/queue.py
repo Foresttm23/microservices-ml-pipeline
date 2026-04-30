@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from typing import Awaitable, cast
 
 import redis.asyncio as redis
 
-from . import RedisResource
+from shared.messaging.base import RedisResource
 
 
 class RedisQueue(RedisResource):

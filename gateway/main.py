@@ -9,11 +9,11 @@ from loguru import logger
 
 from shared.core import register_exception_handlers, setup_logging
 
-from .api.v1.health import router as health_router
-from .api.v1.query import router as query_router
-from .core.config import get_settings
-from .core.httpx_client import close_httpx, init_httpx
-from .middleware import RequestContextMiddleware
+from gateway.api.v1.health import router as health_router
+from gateway.api.v1.query import router as query_router
+from gateway.core.config import get_settings
+from gateway.core.httpx_client import close_httpx, init_httpx
+from gateway.middleware import RequestContextMiddleware
 
 
 @asynccontextmanager
@@ -57,4 +57,4 @@ app.add_middleware(
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     # Keep ASGI import target explicit for module-based startup.
-    uvicorn.run("gateway.app.main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("gateway.main:app", host="0.0.0.0", port=port, reload=True)

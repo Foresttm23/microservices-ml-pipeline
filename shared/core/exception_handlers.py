@@ -1,6 +1,6 @@
 from typing import Any
 
-from . import SessionNotInitializedException
+from shared.core.exceptions import SessionNotInitializedException
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 

@@ -20,3 +20,6 @@ package = true
 [tool.uv.sources]
 shared = { workspace = true }
 
+[tool.setuptools]
+packages = ["worker"]
+package-dir = { "worker" = "." }

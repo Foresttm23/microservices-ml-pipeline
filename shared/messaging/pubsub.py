@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from . import RedisResource
+from shared.messaging.base import RedisResource
 
 
 class RedisPubSub(RedisResource):
@@ -26,4 +26,3 @@ class RedisPubSub(RedisResource):
                     yield message.get("data")
         finally:
             await pubsub.close()
-

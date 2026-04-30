@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request, Response
 from loguru import logger
 
-from ...core.config import get_settings
-from ...core.dependencies import HTTPXClientDep, get_httpx_client
-from ...utils.context_helpers import build_context_headers
+from gateway.core.config import get_settings
+from gateway.core.dependencies import HTTPXClientDep
+from gateway.utils.context_helpers import build_context_headers
 
 router = APIRouter()
 
