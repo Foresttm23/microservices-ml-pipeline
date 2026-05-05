@@ -2,6 +2,10 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# HTTP Header constants
+CORRELATION_ID_HEADER = "X-Correlation-ID"
+USER_ID_HEADER = "X-User-ID"
+
 
 class SharedSettings(BaseSettings):
     """Shared settings across all services (Redis, logging, etc.)."""
@@ -13,6 +17,8 @@ class SharedSettings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: str | None = None
+
+    DEBUG: bool = True
 
     @property
     def REDIS_URL(self) -> str:

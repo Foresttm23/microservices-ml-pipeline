@@ -18,18 +18,21 @@ class RedisQueue(RedisResource):
         call = cast(Awaitable[int], self._client.rpush(self._name, payload))
         return await call
 
-    async def dequeue(self, timeout: int | None = None) -> str | bytes | None:
-        timeout_value = 0 if timeout is None else timeout
-
-        call = cast(
-            Awaitable[list], self._client.blpop(self._name, timeout=timeout_value)
+    async def dequeue(self) -> str | bytes | None:
+        """
+        Dequeue a message from the queue.
+        Blocks until there is a message in the queue.
+        :return:
+        """
+        # timeout = 0, meaning not proceeding until receives a message
+        item = await cast(
+            Awaitable[list],
+            self._client.blpop(self._name, timeout=0),
         )
-        item = await call
         if item is None:
             return None
         _, value = item
         return value
 
     async def size(self) -> int:
-        call = cast(Awaitable[int], self._client.llen(self._name))
-        return await call
+        return await cast(Awaitable[int], self._client.llen(self._name))
