@@ -61,7 +61,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8081:8000"  # Host 8081 -> Container 8000
+      - "8081:8001"  # Host 8081 -> Container 8001
 
   ml_worker:
     env_file:
