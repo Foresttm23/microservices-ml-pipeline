@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from orchestrator.api.v1 import run
 from orchestrator.core.config import get_settings
 from orchestrator.db.session import close_db, init_db
 from shared.core import register_exception_handlers, setup_logging
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(run.router)
 
 
 if __name__ == "__main__":

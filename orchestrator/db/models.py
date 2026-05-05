@@ -1,7 +1,6 @@
 from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import UUID as SA_UUID
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -11,11 +10,8 @@ from orchestrator.db.base import Base, CreatedAtMixin, UpdatedAtMixin
 
 class ResponseModel(Base, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "responses"
-    id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     query_id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True),
         ForeignKey("queries.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -27,13 +23,10 @@ class ResponseModel(Base, CreatedAtMixin, UpdatedAtMixin):
 
 class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "queries"
-    id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
-    correlation_id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True), index=True, unique=True
-    )
-    interaction_id: Mapped[UUID] = mapped_column(SA_UUID(as_uuid=True))
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[str] = mapped_column(index=True)
+    correlation_id: Mapped[UUID] = mapped_column(index=True, unique=True)
+    interaction_id: Mapped[UUID] = mapped_column()
     message: Mapped[str] = mapped_column()
     state: Mapped[str] = mapped_column()
     # convenient ORM relationships
@@ -57,11 +50,8 @@ class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
 
 class LogModel(Base, CreatedAtMixin):
     __tablename__ = "logs"
-    id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     query_id: Mapped[UUID] = mapped_column(
-        SA_UUID(as_uuid=True),
         ForeignKey("queries.id", ondelete="CASCADE"),
         nullable=False,
     )

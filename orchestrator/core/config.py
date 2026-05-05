@@ -7,7 +7,7 @@ class OrchestratorSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
     # Server
-    PORT: int = 8000
+    PORT: int = 8001
 
     # Database
     DB_HOST: str = "localhost"
@@ -28,4 +28,3 @@ class OrchestratorSettings(BaseSettings):
 @lru_cache
 def get_settings() -> OrchestratorSettings:
     return OrchestratorSettings()
-
