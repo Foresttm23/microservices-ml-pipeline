@@ -1,11 +1,16 @@
+from typing import Protocol
 from loguru import logger
 
 from shared.messaging import RedisQueue
 from shared.schemas import ResultMessage
 
 
-class ResultPublisher:
-    def __init__(self, queue: RedisQueue):
+class Publisher(Protocol):
+    async def publish(self, result: ResultMessage) -> None: ...
+
+
+class ResultPublisher(Publisher):
+    def __init__(self, queue: RedisQueue) -> None:
         self._queue = queue
         logger.info("ResultPublisher initialized with queue '{}'", queue.name)
 

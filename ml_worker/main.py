@@ -1,7 +1,15 @@
 import asyncio
 
+from infrastructure.gemini_adapter import GeminiTextGenerator
 from loguru import logger
 
+from ml_worker.core.config import GeminiSettings, get_gemini_settings
+from ml_worker.infrastructure.gemini_adapter import MockTextGenerator, TextGenerator
+from ml_worker.loader import GeminiModelLoader
+from ml_worker.messaging.queue_consumer import QueueConsumer
+from ml_worker.messaging.queue_publisher import ResultPublisher
+from ml_worker.runner import InferenceRunner, Runner
+from ml_worker.task_processor import TaskProcessor, Processor
 from shared.core import setup_logging
 from shared.messaging import (
     RedisQueue,
@@ -9,19 +17,12 @@ from shared.messaging import (
     get_task_queue,
 )
 
-from ml_worker.core.config import get_gemini_settings
-from ml_worker.loader import GeminiModelLoader
-from ml_worker.messaging.queue_consumer import QueueConsumer
-from ml_worker.messaging.queue_publisher import ResultPublisher
-from ml_worker.runner import InferenceRunner
-from ml_worker.task_processor import TaskProcessor
-
 
 def _init_processor(
     *,
-    runner: InferenceRunner,
+    runner: Runner,
     result_queue: RedisQueue,
-) -> TaskProcessor:
+) -> Processor:
     """
     Initialize task processor with inference runner and result publisher.
     """
@@ -31,6 +32,19 @@ def _init_processor(
     return task_processor
 
 
+def _init_generator(
+    settings: GeminiSettings,
+) -> TextGenerator:
+    """
+    Strategy Pattern: Returns a real or mock generator based on settings.
+    """
+    if settings.ML_WORKER_DRY_RUN:
+        logger.warning("Initializing ML Worker in DRY_RUN mode")
+        return MockTextGenerator()
+
+    return GeminiTextGenerator(settings)
+
+
 async def main():
     setup_logging()
     logger.info("Starting ML Worker service")
@@ -38,7 +52,8 @@ async def main():
     settings = get_gemini_settings()
 
     # Initialize model loader and runner
-    loader = GeminiModelLoader(settings=settings)
+    generator = _init_generator(settings)
+    loader = GeminiModelLoader(settings, generator)
     runner = InferenceRunner(loader=loader)
 
     # Initialize Redis client and queues

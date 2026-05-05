@@ -1,28 +1,34 @@
+from typing import Protocol
 from uuid import uuid4
 
+from schemas.text_generator import GenerationResult
+
+from ml_worker.loader import ModelLoader
 from shared.schemas import ResultMessage, TaskMessage
 
-from ml_worker.loader import GeminiModelLoader
+
+class Runner(Protocol):
+    async def run(self, task: TaskMessage) -> ResultMessage: ...
 
 
-class InferenceRunner:
-    def __init__(self, loader: GeminiModelLoader):
+class InferenceRunner(Runner):
+    def __init__(self, loader: ModelLoader):
         self._loader = loader
 
+    # Todo add logger on failure
     async def run(self, task: TaskMessage) -> ResultMessage:
         interaction_id = task.interaction_id or str(uuid4())
 
         try:
-            output_text, model_name, is_mocked = await self._loader.generate_text(
+            result: GenerationResult = await self._loader.generate_text(
                 prompt=task.prompt,
                 interaction_id=interaction_id,
-                model=task.model,
             )
             return ResultMessage(
                 interaction_id=interaction_id,
-                status="mocked" if is_mocked else "completed",
-                model=model_name,
-                output_text=output_text,
+                status="mocked" if result.is_dry_run else "completed",
+                model=result.model,
+                output_text=result.text,
                 user_id=task.user_id,
                 metadata=task.metadata,
             )

@@ -1,11 +1,16 @@
+from typing import Protocol
+
+from ml_worker.messaging.queue_publisher import Publisher
+from ml_worker.runner import Runner
 from shared.schemas import ResultMessage, TaskMessage
 
-from ml_worker.messaging.queue_publisher import ResultPublisher
-from ml_worker.runner import InferenceRunner
+
+class Processor(Protocol):
+    async def process(self, task: TaskMessage) -> ResultMessage: ...
 
 
-class TaskProcessor:
-    def __init__(self, runner: InferenceRunner, publisher: ResultPublisher):
+class TaskProcessor(Processor):
+    def __init__(self, runner: Runner, publisher: Publisher):
         self._runner = runner
         self._publisher = publisher
 
