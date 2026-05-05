@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from orchestrator.core.config import OrchestratorSettings
 from orchestrator.db.base import Base
+import orchestrator.db.models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
