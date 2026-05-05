@@ -23,11 +23,15 @@
       - HTTPX lifecycle helpers are exposed from `gateway/core/httpx_client.py` as `init_httpx` and `close_httpx` and are wired in `gateway/main.py` lifespan.
       - The middleware module re-exports `build_context_headers` for backward compatibility but the canonical helpers live in `gateway/utils/context_helpers.py` (see the deprecation comment in `gateway/middleware.py`).
   - `orchestrator`:
-    - Project layout follows the intended layered structure (folders under `orchestrator/` are present: `api/`, `core/`, `db/`, `migrations/`, `schemas/`).
+    - ✅ **COMPLETE:** Full DDD layering implemented with API endpoints, services, repositories, and domain models.
+    - ✅ **COMPLETE:** HTTP API surface fully operational - accepts POST requests, creates PENDING tasks in PostgreSQL.
+    - ✅ **COMPLETE:** Task enqueuing to Redis `task_queue` with proper context headers and metadata.
+    - ✅ **COMPLETE:** Transaction management and unit-of-work pattern implemented in service layer.
     - `start.sh` waits for Postgres and runs Alembic migrations before launching the FastAPI app.
-    - The HTTP API surface is minimal today (`orchestrator/main.py` only creates the app); `orchestrator/api/v1/health.py` exists but is empty.
     - Notes / recent specifics:
-      - Add new HTTP routes under `orchestrator/api/v1/` and include them from `orchestrator/main.py` when expanding the API surface.
+      - Orchestrator receives requests via gateway proxy at `POST /api/run/{pipeline_id}`.
+      - Creates QueryModel records with PENDING state, enqueues to Redis, returns 202 Accepted with query_id.
+      - Ready for result consumer implementation (see roadmap below).
   - `ml_worker`:
     - An asyncio-based worker is implemented (`ml_worker/main.py`) that initializes a model loader, inference runner, and a `QueueConsumer`.
     - Uses shared Redis queue abstractions (`shared/messaging/queue.py`) to read from `task_queue` and publish to `result_queue`.
@@ -38,7 +42,7 @@
       - `shared/messaging/__init__.py` re-exports `RedisResource`, `RedisQueue`, `RedisPubSub`, `RedisNamespace`, `result_channel`, `get_task_queue`, `get_result_queue`, and `get_redis_client` — prefer importing these from the package root.
       - `RedisQueue.dequeue()` returns raw bytes (or None) and `RedisPubSub.listen()` yields str|bytes; calling code is responsible for decoding/deserializing (see `ml_worker/app/messaging/queue_consumer.py`).
 
-  In short: the repository contains a working ML worker and shared messaging layer; the gateway implements HTTP proxying and middleware; orchestrator scaffolding and DB migration steps exist, but full orchestrator application logic (task creation, result consumption, DB repositories/services) is still in progress.
+   In short: the repository contains a fully operational end-to-end task submission pipeline. Gateway HTTP proxying, Orchestrator API endpoints and services, ML worker task consumption, and Redis queue integration are all complete and running. Remaining work focuses on result consumption, WebSocket pub/sub bridging, and advanced error handling.
 
 ## Runtime Boundaries and Integration Points
 
@@ -69,9 +73,10 @@
 
 ## Orchestrator Design Rules (from ARCH_GUIDE) — current status
 
-- The target DDD layering remains the contract: `api/v1`, `services`, `domain`, `repositories`, `schemas`, `core` under `orchestrator/app/` — the directory layout exists in the repo.
-- Repository rules still apply: repositories should return domain entities (not ORM models) and must not call `session.commit()`; the service layer should manage unit-of-work / transactions and cross-boundary calls (DB + queue/pubsub).
-- Current gap: concrete repository implementations, service orchestration logic, and API endpoints that implement the ARCH_GUIDE flow (save PENDING task -> enqueue task -> return 202) are still TODO. Use the existing layout to implement these behaviors.
+- The target DDD layering is fully implemented: `api/v1`, `services`, `domain`, `repositories`, `schemas`, `core` under `orchestrator/` with all core logic operationally complete.
+- Repository rules are in place: repositories return domain entities (not ORM models) and do not call `session.commit()`; the service layer manages unit-of-work / transactions and cross-boundary calls.
+- ✅ **Completed:** Core API endpoints (task creation, 202 Accepted responses), services (task orchestration), and repositories (query persistence) are all implemented and running.
+- Current gap: Result consumer service (consumes `result_queue`, updates DB status to COMPLETED, publishes to `results:{user_id}` channels) is still TODO.
 
 ## Practical Agent Workflow / How to run things
 
@@ -103,20 +108,38 @@
 
 ## Notes for future work / roadmap (align with ARCH_GUIDE)
 
-- Implement Orchestrator API endpoints and services to:
-  - Create task records (PENDING) in Postgres via repositories and return `202 Accepted`.
-  - Push tasks to the `task_queue` using `shared/messaging/RedisQueue`.
-  - Run a result listener that consumes `result_queue`, updates DB records to `COMPLETED`, and publishes to result channels (e.g., `results:{user_id}`).
+### ✅ Completed (as of May 2026)
+- ✅ Orchestrator API endpoints fully implement the ARCH_GUIDE flow: save PENDING task -> enqueue to Redis -> return 202 Accepted.
+- ✅ Gateway HTTP proxying and request context middleware are fully operational.
+- ✅ ML worker task consumption and result publishing to `result_queue` are working end-to-end.
+- ✅ All services (gateway, orchestrator, ml_worker) running in Docker Compose with proper health checks and dependency ordering.
 
-- Complete Gateway WebSocket Pub/Sub bridge:
-  - Wire the gateway to use `shared/messaging/RedisPubSub` or the repo's pubsub utilities to subscribe to `results:{user_id}` channels and route messages to connected WebSocket clients.
+### 🔮 Next Steps (Priority Order)
 
-- Harden configuration & networking:
-  - Replace hardcoded orchestrator URL(s) with environment-driven service discovery (or use compose service names when running inside Docker).
-  - Add graceful shutdown handling and health endpoints for long-running worker loops.
+1. **Result Consumer Service** (Orchestrator):
+   - Implement a background service/listener in the orchestrator that consumes from `result_queue`.
+   - Parse result messages and update corresponding QueryModel records from PENDING to COMPLETED.
+   - Publish completed results to Redis channel `results:{user_id}` for WebSocket subscribers.
 
----
+2. **Gateway WebSocket Pub/Sub Bridge**:
+   - Wire the gateway to use `shared/messaging/RedisPubSub` for subscribing to `results:{user_id}` channels.
+   - Implement WebSocket endpoint that subscribes to user's result channel on connection.
+   - Route incoming messages from Redis to connected WebSocket clients in real-time.
+   - Handle graceful connection lifecycle (on-connect, on-disconnect, reconnect logic).
 
-If you want, I can:
-- open a PR that implements a small end-to-end smoke path (orchestrator endpoint that enqueues a trivial task, a short-lived ml_worker consumer that returns a canned result, and gateway proxy+websocket demo), or
-- implement the missing gateway pub/sub subscriber and connection manager wiring to exercise `results:{user_id}` publishes.
+3. **Error Handling & Resilience**:
+   - Implement FAILED state for tasks that encounter errors or timeouts.
+   - Add retry logic for transient failures with exponential backoff.
+   - Implement dead-letter queue for permanently failed tasks.
+   - Add circuit breaker patterns for external API calls (e.g., Gemini API).
+
+4. **Monitoring & Observability**:
+   - Add health check endpoints for all services (currently minimal).
+   - Implement metrics collection: queue depth, processing latency, error rates.
+   - Add structured logging with correlation IDs across all services.
+   - Create alerting for critical failures and performance degradation.
+
+5. **Configuration & Service Discovery**:
+   - Replace hardcoded orchestrator URL(s) with environment-driven configuration or service discovery.
+   - Add configuration validation at startup with clear error messages.
+   - Document all required environment variables per service.

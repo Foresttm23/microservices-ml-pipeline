@@ -2,6 +2,27 @@
 
 **Context for AI Agents & Development Sprint**
 
+## Implementation Status (May 2026)
+
+**Current State:** ✅ End-to-end task submission pipeline is fully operational and deployed in Docker Compose.
+
+### Completed Components
+- ✅ Gateway: HTTP proxying with request context middleware
+- ✅ Orchestrator: Full DDD implementation with API endpoints, services, and repositories
+- ✅ ML Worker: Task consumption and inference with result publishing
+- ✅ Messaging: Redis queues (`task_queue`, `result_queue`) fully integrated
+- ✅ Database: PostgreSQL with Alembic migrations and query state tracking
+
+### Next Priority Items
+1. **Result Consumer**: Background service to consume `result_queue` and update query state to COMPLETED
+2. **WebSocket Bridge**: Gateway WebSocket endpoint for real-time result streaming to clients
+3. **Error Handling**: Implement FAILED state and retry logic
+4. **Monitoring**: Add health endpoints and metrics collection
+
+See `COMPLETION_SUMMARY.md` for detailed flow and current service status.
+
+---
+
 ## 1. System Overview
 
 A high-performance, asynchronous ML pipeline for quiz management and real-time result delivery.
@@ -30,19 +51,21 @@ A high-performance, asynchronous ML pipeline for quiz management and real-time r
 
 ### C. ML Worker (The Muscle)
 
-* **Tech:** Python, Pytorch/Transformers, RabbitMQ.
+* **Tech:** Python, Gemini API (or configurable ML provider), asyncio.
 * **Role:** Consumes tasks from `task_queue`, executes inference, pushes result to `result_queue`.
 
 ## 3. Data Flow (The "Queue Conversation")
 
-1. **Client POST /quiz** -> Gateway forwards to Orchestrator.
-2. **Orchestrator** -> Saves record to Postgres (`PENDING`) -> Pushes task to **Redis Queue**.
-3. **Orchestrator** -> Returns `202 Accepted` to Gateway -> Gateway returns to Client.
-4. **ML Worker** -> Consumes task -> Runs model -> Pushes JSON to `result_queue`.
-5. **Orchestrator Result Listener** -> Consumes from `result_queue`:
-    * `UPDATE queries SET status='COMPLETED', result=...`
-    * `REDIS.PUBLISH("results:{user_id}", data)`
-6. **Gateway WebSocket** -> Hears Redis Publish -> Sends result to Client.
+1. ✅ **Client POST /quiz** -> Gateway forwards to Orchestrator (with context headers).
+2. ✅ **Orchestrator** -> Saves record to Postgres (`PENDING`) -> Pushes task to **Redis Queue**.
+3. ✅ **Orchestrator** -> Returns `202 Accepted` to Gateway -> Gateway returns to Client.
+4. ✅ **ML Worker** -> Consumes task -> Runs model (Gemini API) -> Pushes JSON to `result_queue`.
+5. 🔄 **Orchestrator Result Listener** -> Consumes from `result_queue`:
+     * Updates query record: `status='COMPLETED', result=...`
+     * Publishes to Redis: `REDIS.PUBLISH("results:{user_id}", data)`
+     * *(Currently in implementation; background consumer service needed)*
+6. 🔄 **Gateway WebSocket** -> Hears Redis Publish -> Sends result to Client.
+     * *(Currently in implementation; WebSocket bridge needed)*
 
 ## 4. Coding Standards (DDD Enforcement)
 
