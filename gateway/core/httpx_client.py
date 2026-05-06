@@ -1,7 +1,8 @@
 from typing import Any
 
-from shared.core import SessionNotInitializedException
 from httpx import AsyncClient
+
+from shared.core import SessionNotInitializedException
 
 
 class HTTPXClientManager:
@@ -20,7 +21,7 @@ class HTTPXClientManager:
 
     async def client(self) -> AsyncClient:
         if self._client is None:
-            raise SessionNotInitializedException(session_name="HTTPX_Client")
+            raise SessionNotInitializedException("HTTPX_Client")
         return self._client
 
 
