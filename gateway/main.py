@@ -7,13 +7,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from shared.core import register_exception_handlers, setup_logging
-
 from gateway.api.v1.health import router as health_router
 from gateway.api.v1.query import router as query_router
 from gateway.core.config import get_settings
 from gateway.core.httpx_client import close_httpx, init_httpx
-from gateway.middleware import RequestContextMiddleware
+from shared.core import register_exception_handlers
+from shared.core.logging import LoggingContextMiddleware, setup_logging
 
 
 @asynccontextmanager
@@ -43,7 +42,7 @@ app.include_router(health_router)
 app.include_router(query_router)
 
 register_exception_handlers(app)
-app.add_middleware(RequestContextMiddleware)
+app.add_middleware(LoggingContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]

@@ -1,7 +1,7 @@
 from typing import Protocol
 from uuid import uuid4
 
-from schemas.text_generator import GenerationResult
+from ml_worker.schemas.text_generator import GenerationResult
 
 from ml_worker.loader import ModelLoader
 from shared.schemas import ResultMessage, TaskMessage

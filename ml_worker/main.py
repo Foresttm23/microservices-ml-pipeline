@@ -1,6 +1,6 @@
 import asyncio
 
-from infrastructure.gemini_adapter import GeminiTextGenerator
+from ml_worker.infrastructure.gemini_adapter import GeminiTextGenerator
 from loguru import logger
 
 from ml_worker.core.config import GeminiSettings, get_gemini_settings
