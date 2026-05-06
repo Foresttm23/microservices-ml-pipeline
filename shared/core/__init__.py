@@ -9,13 +9,11 @@ from shared.core.exceptions import (
     MissingHeaderException,
     SessionNotInitializedException,
 )
-from shared.core.logging import setup_logging
 
 __all__ = [
     "register_exception_handlers",
     "SessionNotInitializedException",
     "MissingHeaderException",
-    "setup_logging",
     "SharedSettings",
     "get_shared_settings",
     "CORRELATION_ID_HEADER",

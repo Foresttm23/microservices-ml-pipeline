@@ -1,4 +1,5 @@
 import sys
+
 from loguru import logger
 
 
@@ -25,6 +26,3 @@ def setup_logging():
         rotation="10 MB",
         compression="zip",
     )
-
-
-# Run this once in your main.py / entrypoint
