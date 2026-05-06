@@ -46,7 +46,7 @@ app.add_middleware(
 app.include_router(run.router)
 
 
-if __name__ == "__main__":
+def main() -> None:
     orchestrator_settings = get_settings()
     uvicorn.run(
         "orchestrator.main:app",
@@ -54,3 +54,7 @@ if __name__ == "__main__":
         port=orchestrator_settings.PORT,
         reload=True,
     )
+
+
+if __name__ == "__main__":
+    main()
