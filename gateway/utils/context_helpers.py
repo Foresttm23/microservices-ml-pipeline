@@ -1,5 +1,6 @@
 from fastapi import Request
 
+from shared.core.exceptions import MissingRequestStateException
 from shared.core import CORRELATION_ID_HEADER, USER_ID_HEADER
 
 
@@ -31,7 +32,4 @@ def build_context_headers(request: Request) -> dict[str, str]:
             USER_ID_HEADER: request.state.user_id,
         }
     except AttributeError:
-        # Todo implement custom generic exception handler for this case, and log the error with more context
-        raise RuntimeError(
-            "Empty or invalid CORRELATION_ID_HEADER or USER_ID_HEADER in request state."
-        )
+        raise MissingRequestStateException("correlation_id or user_id are empty")

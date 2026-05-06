@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 
 from shared.core.exceptions import (
     MissingHeaderException,
+    MissingRequestStateException,
     SessionNotInitializedException,
 )
 
@@ -16,6 +17,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         SessionNotInitializedException, session_not_initialized_handler
     )
     app.add_exception_handler(MissingHeaderException, missing_header_handler)
+    app.add_exception_handler(
+        MissingRequestStateException, missing_request_state_handler
+    )
 
 
 async def session_not_initialized_handler(request: Request, exc: Any) -> JSONResponse:
@@ -31,4 +35,13 @@ async def missing_header_handler(request: Request, exc: Any) -> JSONResponse:
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal configuration error: Missing {exc.name} header"},
+    )
+
+
+async def missing_request_state_handler(request: Request, exc: Any) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Internal configuration error: Missing request state '{exc.name}'"
+        },
     )

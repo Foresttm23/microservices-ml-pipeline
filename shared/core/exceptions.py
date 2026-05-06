@@ -12,3 +12,12 @@ class MissingHeaderException(Exception):
     def __init__(self, name: str):
         self.name = name
         super().__init__(f"Required state '{name}' is missing.")
+
+
+class MissingRequestStateException(Exception):
+    """Raised when request.state is missing required context data."""
+
+    def __init__(self, name: str):
+        self.name = name
+        super().__init__(f"Required request state '{name}' is missing.")
+
