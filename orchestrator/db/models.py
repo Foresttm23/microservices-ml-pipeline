@@ -1,10 +1,11 @@
 from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import Enum, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from orchestrator.core.enums import QueryState
 from orchestrator.db.base import Base, CreatedAtMixin, UpdatedAtMixin
 
 
@@ -28,7 +29,11 @@ class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
     correlation_id: Mapped[UUID] = mapped_column(index=True, unique=True)
     interaction_id: Mapped[UUID] = mapped_column()
     message: Mapped[str] = mapped_column()
-    state: Mapped[str] = mapped_column()
+    state: Mapped[QueryState] = mapped_column(
+        Enum(QueryState, native_enum=False),
+        default=QueryState.PENDING,
+        server_default=QueryState.PENDING.value,
+    )
     # convenient ORM relationships
     responses: Mapped[List["ResponseModel"]] = relationship(
         "ResponseModel",

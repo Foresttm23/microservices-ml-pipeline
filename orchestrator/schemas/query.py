@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import Field
 
+from orchestrator.core.enums import QueryState
 from orchestrator.schemas.log import LogResponse
 from orchestrator.schemas.response import ResponseResponse
 from shared.schemas import BaseSchema
@@ -15,7 +16,9 @@ class QueryBase(BaseSchema):
     correlation_id: UUID = Field(..., description="Unique correlation ID for tracking")
     interaction_id: UUID = Field(..., description="Interaction session ID")
     message: str = Field(..., description="Query message content")
-    state: str = Field(default="PENDING", description="Current state of the query")
+    state: QueryState = Field(
+        default=QueryState.PENDING, description="Current state of the query"
+    )
 
 
 class QueryCreate(QueryBase):
@@ -27,7 +30,7 @@ class QueryCreate(QueryBase):
 class QueryUpdate(BaseSchema):
     """Schema for updating a query."""
 
-    state: Optional[str] = Field(None, description="Updated state")
+    state: Optional[QueryState] = Field(None, description="Updated state")
     message: Optional[str] = Field(None, description="Updated message")
 
 
@@ -58,7 +61,7 @@ class QueryListResponse(BaseSchema):
     id: UUID = Field(..., description="Query ID")
     correlation_id: UUID = Field(..., description="Unique correlation ID")
     interaction_id: UUID = Field(..., description="Interaction session ID")
-    state: str = Field(..., description="Current state of the query")
+    state: QueryState = Field(..., description="Current state of the query")
     created_at: datetime = Field(..., description="When the query was created")
 
     class Config:

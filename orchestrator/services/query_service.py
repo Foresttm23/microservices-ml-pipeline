@@ -47,7 +47,6 @@ class QueryService:
             correlation_id=correlation_id,
             user_id=user_id,
             message=message,
-            state="PENDING",
         )
 
         task_payload = TaskMessage(
