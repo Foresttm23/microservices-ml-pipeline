@@ -8,7 +8,8 @@ from loguru import logger
 from orchestrator.api.v1 import run
 from orchestrator.core.config import get_settings
 from orchestrator.db.session import close_db, init_db
-from shared.core import register_exception_handlers, setup_logging
+from shared.core import register_exception_handlers
+from shared.core.logging import LoggingContextMiddleware, setup_logging
 
 
 @asynccontextmanager
@@ -30,6 +31,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 register_exception_handlers(app)
 
+app.add_middleware(LoggingContextMiddleware)
+
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
     allow_origins=["*"],
@@ -37,6 +40,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Include API routers
 app.include_router(run.router)

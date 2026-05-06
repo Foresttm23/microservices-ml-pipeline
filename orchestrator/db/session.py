@@ -34,7 +34,7 @@ class DBSessionManager:
     @contextlib.asynccontextmanager
     async def session(self) -> AsyncGenerator[AsyncSession, None]:
         if self.sessionmaker is None:
-            raise SessionNotInitializedException(session_name="POSTGRES_DB")
+            raise SessionNotInitializedException("POSTGRES_DB")
 
         session = self.sessionmaker()
         try:

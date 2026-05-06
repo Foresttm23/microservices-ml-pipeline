@@ -10,7 +10,7 @@ from ml_worker.messaging.queue_consumer import QueueConsumer
 from ml_worker.messaging.queue_publisher import ResultPublisher
 from ml_worker.runner import InferenceRunner, Runner
 from ml_worker.task_processor import TaskProcessor, Processor
-from shared.core import setup_logging
+from shared.core.logging import setup_logging
 from shared.messaging import (
     RedisQueue,
     get_result_queue,
@@ -67,6 +67,7 @@ async def main():
     queue_consumer = QueueConsumer(task_processor=task_processor, queue=task_queue)
 
     logger.info("Starting queue consumer loop")
+
     await queue_consumer.run()
 
 

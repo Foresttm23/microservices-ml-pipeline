@@ -52,7 +52,8 @@ class QueryService:
 
         task_payload = TaskMessage(
             prompt=message,
-            interaction_id=str(query.interaction_id),
+            correlation_id=correlation_id,
+            interaction_id=query.interaction_id,
             user_id="orchestrator",
             metadata={
                 "query_id": str(query.id),

@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Protocol
 
 from ml_worker.core.config import GeminiSettings
 from ml_worker.infrastructure.gemini_adapter import TextGenerator
