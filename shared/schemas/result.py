@@ -5,9 +5,11 @@ from pydantic import Field
 
 from shared.schemas import BaseSchema
 
+from uuid import UUID
+
 
 class ResultMessage(BaseSchema):
-    interaction_id: str
+    interaction_id: UUID
     status: Literal["completed", "failed", "mocked"]
     model: str
     output_text: str | None = None

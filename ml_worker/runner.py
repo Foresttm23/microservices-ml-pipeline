@@ -17,7 +17,7 @@ class InferenceRunner(Runner):
 
     # Todo add logger on failure
     async def run(self, task: TaskMessage) -> ResultMessage:
-        interaction_id = task.interaction_id or str(uuid4())
+        interaction_id = task.interaction_id or uuid4()
 
         try:
             result: GenerationResult = await self._loader.generate_text(

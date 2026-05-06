@@ -1,3 +1,4 @@
+from uuid import UUID
 from typing import Any, Protocol
 
 from httpx import AsyncClient, HTTPError, Response
@@ -10,7 +11,7 @@ from ml_worker.schemas.text_generator import GenerationResult
 class TextGenerator(Protocol):
     """The Contract: Any generator must follow this rule."""
 
-    async def generate(self, prompt: str, interaction_id: str) -> GenerationResult: ...
+    async def generate(self, prompt: str, interaction_id: UUID) -> GenerationResult: ...
 
 
 class GeminiTextGenerator(TextGenerator):
@@ -20,7 +21,7 @@ class GeminiTextGenerator(TextGenerator):
         if not self._settings.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY is required unless ML_WORKER_DRY_RUN=true")
 
-    async def generate(self, prompt: str, interaction_id: str) -> GenerationResult:
+    async def generate(self, prompt: str, interaction_id: UUID) -> GenerationResult:
         model = self._settings.GEMINI_MODEL
 
         endpoint = self._get_gemini_endpoint(self._settings.GEMINI_API_BASE, model)
@@ -72,6 +73,6 @@ class GeminiTextGenerator(TextGenerator):
 class MockTextGenerator(TextGenerator):
     """Used when ML_WORKER_DRY_RUN=true"""
 
-    async def generate(self, prompt: str, interaction_id: str) -> GenerationResult:
+    async def generate(self, prompt: str, interaction_id: UUID) -> GenerationResult:
         text = f"[dry-run] Mocked response for {interaction_id}: {prompt}"
         return GenerationResult(text=text, model="", is_dry_run=True)

@@ -1,3 +1,4 @@
+from uuid import UUID
 from typing import Protocol
 
 from ml_worker.core.config import GeminiSettings
@@ -7,7 +8,7 @@ from ml_worker.schemas.text_generator import GenerationResult
 
 class ModelLoader(Protocol):
     async def generate_text(
-        self, prompt: str, interaction_id: str
+        self, prompt: str, interaction_id: UUID
     ) -> GenerationResult: ...
 
 
@@ -19,7 +20,7 @@ class GeminiModelLoader(ModelLoader):
     async def generate_text(
         self,
         prompt: str,
-        interaction_id: str,
+        interaction_id: UUID,
     ) -> GenerationResult:
         result = await self._generator.generate(prompt, interaction_id)
         return result
