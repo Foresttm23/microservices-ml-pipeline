@@ -6,8 +6,8 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.39.3",
     "ruff>=0.15.12",
-    "ty>=0.0.32",
 ]
 
 [tool.uv.workspace]
@@ -19,20 +19,28 @@ members = [
 ]
 
 
-[tool.ty]
-# Replaces venvPath and venv
-# ty auto-detects .venv in the root, but you can be explicit:
-python-version = "3.13.5"
+[tool.pyright]
+# BasedPyright / Pyright configuration for this monorepo.
+# Keep settings conservative so developers don't get noisy errors by default.
+pythonVersion = "3.13"
+typeCheckingMode = "basic" # 'off'| 'basic' | 'strict' - 'basic' is a good middle ground
 
-# Replaces your "include" array
+# Include the package source folders in the workspace so pyright resolves imports
 include = [
-    "gateway",
-    "shared",
-    "ml_worker",
-    "orchestrator"
+  "gateway",
+  "shared",
+  "ml_worker",
+  "orchestrator",
 ]
 
-# ty handles sub-packages as a "workspace"
-# You don't need "executionEnvironments" if the version is the same
-[tool.ty.workspace]
-members = ["gateway", "shared", "ml_worker", "orchestrator"]
+# Common excludes (build artifacts, migrations, venvs)
+exclude = [
+  "**/__pycache__/**",
+  "**/migrations/**",
+  "**/.venv/**",
+  "**/venv/**",
+]
+
+# Limit some error reports that are noisy in mixed repo setups
+reportMissingImports = false
+reportMissingTypeStubs = false

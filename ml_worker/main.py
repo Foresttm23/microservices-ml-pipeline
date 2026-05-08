@@ -24,7 +24,7 @@ def _init_processor(
     result_queue: RedisQueue,
 ) -> Processor:
     """
-    Initialize task processor with inference runner and result publisher.
+    Initialize the task processor with an inference runner and result publisher.
     """
     publisher = ResultPublisher(queue=result_queue)
     task_processor = TaskProcessor(runner=runner, publisher=publisher)
