@@ -10,6 +10,11 @@ from orchestrator.schemas.response import ResponseResponse
 from shared.schemas import BaseSchema
 
 
+class QueryEntity(BaseSchema):
+    # todo the full query entity representation of the orm model
+    pass
+
+
 class QueryBase(BaseSchema):
     """Base schema for queries."""
 

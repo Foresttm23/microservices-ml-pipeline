@@ -1,16 +1,20 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestrator.db.models import QueryModel
+from orchestrator.schemas.query import QueryEntity
+from shared.repositories import BaseRepository
 
 
-class QueryRepository:
+class QueryRepository(BaseRepository[QueryModel, QueryEntity]):
     """Repository for Query entities."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.model_class: type[QueryModel] = QueryModel
+        self.entity_class: type[QueryEntity] = QueryEntity
 
     async def add(self, query: QueryModel) -> QueryModel:
         """Just persistence. No business logic."""
@@ -29,3 +33,4 @@ class QueryRepository:
         stmt = select(QueryModel).where(QueryModel.id == query_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+

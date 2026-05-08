@@ -5,16 +5,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from orchestrator.db.models import QueryModel
 from orchestrator.repositories.query_repository import QueryRepository
-from shared.messaging import get_task_queue
+from shared.messaging import QueuePublisher, get_task_queue
 from shared.schemas import TaskMessage
+from shared.services import BaseService
 
 
-class QueryService:
+class QueryService(BaseService):
     """Service for managing queries and tasks."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, query_repo: QueryRepository):
         self.session = session
-        self.query_repo = QueryRepository(session)
+        self.query_repo = query_repo
 
     async def create_and_enqueue_task(
         self,
@@ -53,7 +54,7 @@ class QueryService:
             prompt=message,
             correlation_id=correlation_id,
             interaction_id=query.interaction_id,
-            user_id="orchestrator",
+            user_id=user_id,
             metadata={
                 "query_id": str(query.id),
                 "correlation_id": str(correlation_id),
@@ -61,13 +62,13 @@ class QueryService:
             },
         )
 
-        # Enqueue to Redis task queue
-        task_queue = get_task_queue()
-        await task_queue.enqueue(task_payload.model_dump_json())
+        # Enqueue to Redis task queue via the generic publisher
+        task_publisher = QueuePublisher(get_task_queue())
+        await task_publisher.publish(task_payload.model_dump_json())
 
         await self.session.commit()
         logger.info(
-            f"Created query {query.id} and enqueued task for pipeline {pipeline_id}"
+            "Created query {} and enqueued task for pipeline {}", query.id, pipeline_id
         )
 
         return query.id
