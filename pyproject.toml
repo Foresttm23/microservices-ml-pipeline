@@ -27,18 +27,18 @@ typeCheckingMode = "basic" # 'off'| 'basic' | 'strict' - 'basic' is a good middl
 
 # Include the package source folders in the workspace so pyright resolves imports
 include = [
-  "gateway",
-  "shared",
-  "ml_worker",
-  "orchestrator",
+    "gateway",
+    "shared",
+    "ml_worker",
+    "orchestrator",
 ]
 
 # Common excludes (build artifacts, migrations, venvs)
 exclude = [
-  "**/__pycache__/**",
-  "**/migrations/**",
-  "**/.venv/**",
-  "**/venv/**",
+    "**/__pycache__/**",
+    "**/migrations/**",
+    "**/.venv/**",
+    "**/venv/**",
 ]
 
 # Limit some error reports that are noisy in mixed repo setups

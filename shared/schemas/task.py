@@ -15,7 +15,7 @@ class TaskMessage(BaseSchema):
         default=None,
         description="Gemini conversation message history",
     )
-    user_id: str | None = Field(default=None)
+    user_id: str = Field(...)
     model: str | None = Field(
         default=None, description="Optional Gemini model override"
     )

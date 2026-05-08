@@ -1,32 +1,37 @@
 import asyncio
 
-from ml_worker.infrastructure.gemini_adapter import GeminiTextGenerator
 from loguru import logger
 
 from ml_worker.core.config import GeminiSettings, get_gemini_settings
-from ml_worker.infrastructure.gemini_adapter import MockTextGenerator, TextGenerator
+from ml_worker.infrastructure.gemini_adapter import (
+    GeminiTextGenerator,
+    MockTextGenerator,
+    TextGenerator,
+)
 from ml_worker.loader import GeminiModelLoader
-from ml_worker.messaging.queue_consumer import QueueConsumer
-from ml_worker.messaging.queue_publisher import ResultPublisher
 from ml_worker.runner import InferenceRunner, Runner
-from ml_worker.task_processor import TaskProcessor, Processor
+from ml_worker.task_processor import TaskProcessor
 from shared.core.logging import setup_logging
 from shared.messaging import (
+    Processor,
+    QueueConsumer,
+    QueuePublisher,
     RedisQueue,
     get_result_queue,
     get_task_queue,
 )
+from shared.schemas import ResultMessage, TaskMessage
 
 
 def _init_processor(
     *,
     runner: Runner,
     result_queue: RedisQueue,
-) -> Processor:
+) -> Processor[TaskMessage, ResultMessage]:
     """
     Initialize the task processor with an inference runner and result publisher.
     """
-    publisher = ResultPublisher(queue=result_queue)
+    publisher = QueuePublisher(result_queue)
     task_processor = TaskProcessor(runner=runner, publisher=publisher)
 
     return task_processor
@@ -47,6 +52,7 @@ def _init_generator(
 
 async def main():
     setup_logging()
+
     logger.info("Starting ML Worker service")
 
     settings = get_gemini_settings()
@@ -64,7 +70,11 @@ async def main():
     task_processor = _init_processor(runner=runner, result_queue=result_queue)
 
     # Initialize and start queue consumer
-    queue_consumer = QueueConsumer(task_processor=task_processor, queue=task_queue)
+    queue_consumer = QueueConsumer[TaskMessage, ResultMessage](
+        processor=task_processor,
+        queue=task_queue,
+        message_factory=TaskMessage.model_validate_json,
+    )
 
     logger.info("Starting queue consumer loop")
 
@@ -72,4 +82,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    with logger.contextualize(service="ml_worker"):
+        asyncio.run(main())

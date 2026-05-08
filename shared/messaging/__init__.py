@@ -4,15 +4,23 @@ from redis.asyncio import Redis
 
 from shared.core import get_shared_settings
 from shared.messaging.base import RedisResource
+from shared.messaging.consumer import QueueConsumer
 from shared.messaging.names import RedisNamespace, result_channel
+from shared.messaging.protocols import Processor
+from shared.messaging.publisher import QueuePublisher
 from shared.messaging.pubsub import RedisPubSub
 from shared.messaging.queue import RedisQueue
+from shared.messaging.protocols import Publisher
 
 __all__ = [
     "RedisPubSub",
     "RedisQueue",
     "RedisResource",
     "RedisNamespace",
+    "QueueConsumer",
+    "Publisher",
+    "QueuePublisher",
+    "Processor",
     "result_channel",
     "get_task_queue",
     "get_result_queue",
