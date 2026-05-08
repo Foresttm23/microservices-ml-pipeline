@@ -39,14 +39,10 @@ class LoggingContextMiddleware(BaseHTTPMiddleware):
 
         In debug mode, accepts user_id from query params for testing purposes, allowing developers to simulate different users without needing authentication.
         """
-        user_id = getattr(request.state, "user_id", None)
-        if user_id:
-            return user_id
-
         if debug:  # Temporary workaround for testing in debug mode, allowing user_id to be passed as a query parameter
             query_user_id = request.query_params.get("user_id")
             if query_user_id:
                 return query_user_id
 
-        # 3. Fallback
-        return "anonymous"
+        user_id = getattr(request.state, "user_id", "anonymous")
+        return user_id
