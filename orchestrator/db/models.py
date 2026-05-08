@@ -52,6 +52,23 @@ class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
         passive_deletes=True,
     )
 
+    @classmethod
+    def create(cls, user_id: str, correlation_id: UUID, message: str) -> "QueryModel":
+        """Factory method to ensure every new query starts correctly."""
+        return cls(
+            user_id=user_id,
+            correlation_id=correlation_id,
+            interaction_id=uuid4(),
+            message=message,
+            state=QueryState.PENDING,
+        )
+
+    def transition_to(self, next_state: QueryState) -> None:
+        if self.state != QueryState.PENDING:
+            raise ValueError("Cannot modify a non pending query")
+
+        self.state = next_state
+
 
 class LogModel(Base, CreatedAtMixin):
     __tablename__ = "logs"

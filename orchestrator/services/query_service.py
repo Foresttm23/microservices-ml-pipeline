@@ -1,10 +1,9 @@
-"""Service layer for query and task management."""
-
 from uuid import UUID
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from orchestrator.db.models import QueryModel
 from orchestrator.repositories.query_repository import QueryRepository
 from shared.messaging import get_task_queue
 from shared.schemas import TaskMessage
@@ -43,11 +42,12 @@ class QueryService:
             4. Return query ID
         """
         # Create query record (not committed yet)
-        query = await self.query_repo.create(
+        query = QueryModel.create(
             correlation_id=correlation_id,
             user_id=user_id,
             message=message,
         )
+        await self.query_repo.add(query)
 
         task_payload = TaskMessage(
             prompt=message,

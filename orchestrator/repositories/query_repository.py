@@ -3,7 +3,6 @@ from uuid import UUID, uuid4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from orchestrator.core.enums import QueryState
 from orchestrator.db.models import QueryModel
 
 
@@ -13,20 +12,8 @@ class QueryRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(
-        self,
-        correlation_id: UUID,
-        user_id: str,
-        message: str,
-    ) -> QueryModel:
-        """Create a new query record."""
-        query = QueryModel(
-            user_id=user_id,
-            correlation_id=correlation_id,
-            interaction_id=uuid4(),
-            message=message,
-            state=QueryState.PENDING,
-        )
+    async def add(self, query: QueryModel) -> QueryModel:
+        """Just persistence. No business logic."""
         self.session.add(query)
         await self.session.flush()
         return query
@@ -42,12 +29,3 @@ class QueryRepository:
         stmt = select(QueryModel).where(QueryModel.id == query_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
-
-    async def update_state(
-        self, query_id: UUID, state: QueryState
-    ) -> QueryModel | None:
-        """Update query state."""
-        query = await self.get_by_id(query_id)
-        if query is not None:
-            query.state = QueryState(state)
-        return query

@@ -12,7 +12,7 @@ from shared.schemas import PipelineRequest, PipelineResponse
 router = APIRouter()
 
 
-@router.post("/api/run/{pipeline_id}", status_code=status.HTTP_202_OK)
+@router.post("/api/run/{pipeline_id}", status_code=status.HTTP_202_ACCEPTED)
 async def run_pipeline(
     pipeline_id: str,
     payload: PipelineRequest,
@@ -22,7 +22,7 @@ async def run_pipeline(
 ) -> PipelineResponse:
     """
     Accepts a pipeline request.
-    Validation and header extraction are now handled by FastAPI dependencies.
+    FastAPI dependencies now handle validation and header extraction.
     """
     logger.info(f"Processing pipeline {pipeline_id} for user {user_id}")
 
