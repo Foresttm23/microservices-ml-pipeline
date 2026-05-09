@@ -9,6 +9,7 @@ from loguru import logger
 
 from gateway.api.v1.health import router as health_router
 from gateway.api.v1.query import router as query_router
+from gateway.api.v1.websocket import router as websocket_router
 from gateway.core.config import get_settings
 from gateway.core.httpx_client import close_httpx, init_httpx
 from shared.core import register_exception_handlers
@@ -40,6 +41,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(health_router)
 app.include_router(query_router)
+app.include_router(websocket_router)
 
 register_exception_handlers(app)
 app.add_middleware(LoggingContextMiddleware)
