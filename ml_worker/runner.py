@@ -1,9 +1,8 @@
 from typing import Protocol
 from uuid import uuid4
 
-from ml_worker.schemas.text_generator import GenerationResult
-
 from ml_worker.loader import ModelLoader
+from ml_worker.schemas.text_generator import GenerationResult
 from shared.schemas import ResultMessage, TaskMessage
 
 
@@ -15,7 +14,6 @@ class InferenceRunner(Runner):
     def __init__(self, loader: ModelLoader):
         self._loader = loader
 
-    # Todo add logger on failure
     async def run(self, task: TaskMessage) -> ResultMessage:
         interaction_id = task.interaction_id or uuid4()
 
