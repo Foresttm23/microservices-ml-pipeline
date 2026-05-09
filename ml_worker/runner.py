@@ -25,6 +25,7 @@ class InferenceRunner(Runner):
                 interaction_id=interaction_id,
             )
             return ResultMessage(
+                correlation_id=task.correlation_id,
                 interaction_id=interaction_id,
                 status="mocked" if result.is_dry_run else "completed",
                 model=result.model,
@@ -34,6 +35,7 @@ class InferenceRunner(Runner):
             )
         except Exception as exc:
             return ResultMessage(
+                correlation_id=task.correlation_id,
                 interaction_id=interaction_id,
                 status="failed",
                 model=task.model or "unknown",
