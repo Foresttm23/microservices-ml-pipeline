@@ -6,7 +6,9 @@ from loguru import logger
 
 from orchestrator.core.enums import QueryState
 from orchestrator.db.session import db_session_manager
+from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
+from orchestrator.repositories.response_repository import ResponseRepository
 from orchestrator.services.query_service import QueryService
 from shared.messaging import Processor, RedisPubSub, result_channel
 from shared.schemas.result import ResultMessage
@@ -23,11 +25,16 @@ class ResultProcessor(Processor[ResultMessage, None]):
             return
 
         async with db_session_manager.session() as session:
-            repo = QueryRepository(session)
-            service = QueryService(session, repo)  # Or inject this
+            # Initialize repositories
+            query_repo = QueryRepository(session)
+            response_repo = ResponseRepository(session)
+            log_repo = LogRepository(session)
+
+            # Initialize service with all repositories
+            service = QueryService(session, query_repo, response_repo, log_repo)
 
             # 2. Fetch
-            query = await repo.get_model_by_id(query_uuid)
+            query = await query_repo.get_by_id(query_uuid)
             if not query or query.state != QueryState.PENDING:
                 return
 
