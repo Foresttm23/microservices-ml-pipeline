@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import Field
 
@@ -11,8 +11,42 @@ from shared.schemas import BaseSchema
 
 
 class QueryEntity(BaseSchema):
-    # todo the full query entity representation of the orm model
-    pass
+    id: UUID = Field(default_factory=uuid4)
+    user_id: str
+    correlation_id: UUID
+    interaction_id: UUID = Field(default_factory=uuid4)
+    message: str
+    state: QueryState = QueryState.PENDING
+
+    # Optional metadata from mixins
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @classmethod
+    def create(cls, user_id: str, correlation_id: UUID, message: str) -> "QueryEntity":
+        """Factory to ensure a clean initial state."""
+        return cls(
+            user_id=user_id,
+            correlation_id=correlation_id,
+            message=message,
+            state=QueryState.PENDING,
+        )
+
+    def transition_to(self, next_state: QueryState) -> None:
+        """Internal state machine logic."""
+        if self.state == QueryState.COMPLETED and next_state != QueryState.COMPLETED:
+            raise ValueError(f"Cannot transition from COMPLETED to {next_state}")
+
+        if self.state == QueryState.FAILED and next_state != QueryState.FAILED:
+            raise ValueError(f"Cannot transition from FAILED to {next_state}")
+
+        self.state = next_state
+
+    def mark_completed(self) -> None:
+        self.transition_to(QueryState.COMPLETED)
+
+    def mark_failed(self) -> None:
+        self.transition_to(QueryState.FAILED)
 
 
 class QueryBase(BaseSchema):

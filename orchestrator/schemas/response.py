@@ -1,9 +1,62 @@
-from shared.schemas import BaseSchema
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import Field
+
+from shared.schemas import BaseSchema
+
+
+class ResponseEntity(BaseSchema):
+    """Rich domain entity for Response with business logic."""
+
+    id: UUID = Field(default_factory=uuid4)
+    query_id: UUID
+    content: str
+    tokens_used: Optional[int] = None
+
+    # Optional metadata from mixins
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @classmethod
+    def create(
+        cls,
+        query_id: UUID,
+        content: str,
+        tokens_used: Optional[int] = None,
+    ) -> "ResponseEntity":
+        """
+        Factory method to create a response entity.
+
+        Args:
+            query_id: ID of the query this response belongs to
+            content: Response content/text
+            tokens_used: Optional token count from the model
+
+        Returns:
+            ResponseEntity instance ready for persistence
+        """
+        return cls(
+            query_id=query_id,
+            content=content,
+            tokens_used=tokens_used,
+        )
+
+    def update_content(self, new_content: str) -> None:
+        """Update response content (immutable by default - use this for mutations)."""
+        if not new_content or not new_content.strip():
+            raise ValueError("Response content cannot be empty")
+        self.content = new_content
+
+    def add_token_count(self, tokens: int) -> None:
+        """
+        Add or update token count for this response.
+        Validates that token count is non-negative.
+        """
+        if tokens < 0:
+            raise ValueError("Token count cannot be negative")
+        self.tokens_used = tokens
 
 
 class ResponseBase(BaseSchema):
@@ -29,3 +82,5 @@ class ResponseResponse(ResponseBase):
 
     class Config:
         from_attributes = True
+
+
