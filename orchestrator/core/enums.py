@@ -5,4 +5,4 @@ class QueryState(StrEnum):
     PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
-
+    MOCKED = "MOCKED"
