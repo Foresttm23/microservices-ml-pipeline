@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -8,8 +10,11 @@ from loguru import logger
 from orchestrator.api.v1 import run
 from orchestrator.core.config import get_settings
 from orchestrator.db.session import close_db, init_db
+from orchestrator.services.result_processor import ResultProcessor
 from shared.core import register_exception_handlers
 from shared.core.logging import LoggingContextMiddleware, setup_logging
+from shared.messaging import QueueConsumer, RedisPubSub, get_redis_client, get_result_queue
+from shared.schemas.result import ResultMessage
 
 
 @asynccontextmanager
@@ -21,10 +26,23 @@ async def lifespan(app: FastAPI):
     orchestrator_settings = get_settings()
     init_db(orchestrator_settings, pool_size=20, max_overflow=10)
 
+    result_queue = get_result_queue()
+    pubsub = RedisPubSub(get_redis_client())
+    result_processor = ResultProcessor(pubsub)
+    result_consumer = QueueConsumer[ResultMessage, None](
+        processor=result_processor,
+        queue=result_queue,
+        message_factory=ResultMessage.model_validate_json,
+    )
+    consumer_task = asyncio.create_task(result_consumer.run())
+
     yield
 
     # Shutdown
     logger.info("Shutdown")
+    consumer_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await consumer_task
     await close_db()
 
 
