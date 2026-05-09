@@ -28,6 +28,7 @@ class InferenceRunner(Runner):
                 status="mocked" if result.is_dry_run else "completed",
                 model=result.model,
                 output_text=result.text,
+                tokens_used=result.tokens_used,
                 user_id=task.user_id,
                 metadata=task.metadata,
             )

@@ -13,6 +13,7 @@ class ResultMessage(BaseSchema):
     status: Literal["completed", "failed", "mocked"]
     model: str
     output_text: str | None = None
+    tokens_used: int | None = None
     error: str | None = None
     user_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
