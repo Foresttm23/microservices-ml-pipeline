@@ -63,6 +63,7 @@ class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
             state=QueryState.PENDING,
         )
 
+    # todo Implement a rich entity principle instead. Move this method to the entity instead.
     def transition_to(self, next_state: QueryState) -> None:
         if self.state != QueryState.PENDING:
             raise ValueError("Cannot modify a non pending query")
