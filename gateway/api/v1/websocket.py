@@ -7,7 +7,7 @@ router = APIRouter()
 
 
 @router.websocket("/ws/results/{user_id}")
-async def results_socket(websocket: WebSocket, user_id: str) -> None:
+async def results_socket(websocket: WebSocket, user_id: str = "anonymous") -> None:
     await websocket.accept()
 
     pubsub = RedisPubSub(get_redis_client())
