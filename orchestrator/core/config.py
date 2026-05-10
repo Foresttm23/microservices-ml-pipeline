@@ -7,7 +7,7 @@ class OrchestratorSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
     # Server
-    PORT: int = 8001
+    PORT: int = 8081
 
     # Database
     DB_HOST: str = "localhost"
