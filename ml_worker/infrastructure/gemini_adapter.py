@@ -73,10 +73,10 @@ class GeminiTextGenerator(TextGenerator):
         }
 
     @staticmethod
-    def _get_gemini_headers(interaction_id) -> dict[str, str]:
+    def _get_gemini_headers(interaction_id: UUID) -> dict[str, str]:
         return {
             "Content-Type": "application/json",
-            "X-Interaction-Id": interaction_id,
+            "X-Interaction-Id": str(interaction_id),
         }
 
 
