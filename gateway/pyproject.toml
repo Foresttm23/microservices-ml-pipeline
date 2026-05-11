@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.136.1",
+    "PyJWT>=2.8.0",
     "shared",
 ]
 
