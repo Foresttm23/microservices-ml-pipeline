@@ -60,6 +60,10 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
             3. Commit database transaction
             4. Return query ID
         """
+        logger.debug(
+            "Creating query: pipeline_id={}",
+            pipeline_id,
+        )
         # Create query record (not committed yet)
         query = QueryEntity.create(
             correlation_id=correlation_id,
@@ -104,6 +108,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
             2. Save responses or logs as appropriate
             3. Persist all changes to database
         """
+        logger.debug("Handling result: query_id={} status={}", query.id, result.status)
         if result.status in (QueryState.COMPLETED, QueryState.MOCKED):
             query.transition_to(QueryState.COMPLETED)
             if result.output_text:

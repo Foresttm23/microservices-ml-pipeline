@@ -1,3 +1,5 @@
+from loguru import logger
+
 from ml_worker.runner import Runner
 from shared.messaging import Publisher
 from shared.messaging.protocols import Processor
@@ -10,6 +12,8 @@ class TaskProcessor(Processor[TaskMessage, ResultMessage]):
         self._publisher = publisher
 
     async def process(self, task: TaskMessage) -> ResultMessage:
+        logger.debug("Processing task")
         result = await self._runner.run(task)
+        logger.info("Task processed: status={} model={}", result.status, result.model)
         await self._publisher.publish(result.model_dump_json())
         return result

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request
+from loguru import logger
 
 from gateway.core.config import get_settings
 from gateway.core.dependencies import HTTPXClientDep
@@ -12,11 +13,21 @@ router = APIRouter()
 async def proxy_to_orchestrator(
     payload: PipelineRequest, pipeline_id: str, request: Request, client: HTTPXClientDep
 ):
+    logger.info(
+        "Proxying pipeline request: pipeline_id={}",
+        pipeline_id,
+    )
     gateway_settings = get_settings()
     orchestrator_url = f"{gateway_settings.ORCHESTRATOR_URL}/api/run/{pipeline_id}"
-    return await forward_to_service(
+    response = await forward_to_service(
         request,
         client,
         orchestrator_url,
         timeout=gateway_settings.HTTPX_TIMEOUT_SECONDS,
     )
+    logger.info(
+        "Orchestrator response: pipeline_id={} status_code={}",
+        pipeline_id,
+        response.status_code,
+    )
+    return response

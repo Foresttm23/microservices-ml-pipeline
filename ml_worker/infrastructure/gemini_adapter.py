@@ -1,14 +1,15 @@
-from uuid import UUID
 from typing import Any, Protocol
+from uuid import UUID
 
 from httpx import AsyncClient, HTTPError, Response
+from loguru import logger
 
 from ml_worker.core.config import GeminiSettings
+from ml_worker.schemas.text_generator import GenerationResult
 from ml_worker.utils.gemini import (
     extract_text_from_gemini_response,
     extract_tokens_from_gemini_response,
 )
-from ml_worker.schemas.text_generator import GenerationResult
 
 
 class TextGenerator(Protocol):
@@ -31,6 +32,7 @@ class GeminiTextGenerator(TextGenerator):
         payload = self._get_gemini_payload(prompt)
         headers = self._get_gemini_headers(interaction_id)
 
+        logger.debug("Calling Gemini model {}", model)
         gemini_response = await self._execute_request(endpoint, payload, headers)
 
         response_payload = gemini_response.json()
@@ -58,8 +60,12 @@ class GeminiTextGenerator(TextGenerator):
             try:
                 response.raise_for_status()
             except HTTPError as exc:
+                logger.warning(
+                    "Gemini request failed with status {}", response.status_code
+                )
                 raise RuntimeError(f"Gemini request failed: {response.text}") from exc
 
+            logger.debug("Gemini response status {}", response.status_code)
             return response
 
     @staticmethod

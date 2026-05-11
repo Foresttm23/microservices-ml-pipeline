@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 from loguru import logger
 from starlette import status
@@ -28,7 +27,10 @@ async def run_pipeline(
     Accepts a pipeline request.
     FastAPI dependencies now handle validation and header extraction.
     """
-    logger.info("Processing pipeline request")
+    logger.info(
+        "Received pipeline request: pipeline_id={}",
+        pipeline_id,
+    )
 
     service = QueryService(session, query_repo)
     query_id = await service.create_and_enqueue_task(
@@ -37,6 +39,8 @@ async def run_pipeline(
         message=payload.message,
         pipeline_id=pipeline_id,
     )
+
+    logger.info("Enqueued task: pipeline_id={} query_id={}", pipeline_id, query_id)
 
     return PipelineResponse(
         status="accepted",

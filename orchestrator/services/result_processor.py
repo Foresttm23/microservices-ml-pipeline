@@ -22,6 +22,7 @@ class ResultProcessor(Processor[ResultMessage, None]):
         # 1. Extraction and Basic Validation
         query_uuid = self._extract_query_id(result)
         if not query_uuid:
+            logger.warning("Skipping result without query_id metadata")
             return
 
         async with db_session_manager.session() as session:
@@ -35,7 +36,15 @@ class ResultProcessor(Processor[ResultMessage, None]):
 
             # 2. Fetch
             query = await query_repo.get_by_id(query_uuid)
-            if not query or query.state != QueryState.PENDING:
+            if not query:
+                logger.warning("Query not found for result: query_id={}", query_uuid)
+                return
+            if query.state != QueryState.PENDING:
+                logger.info(
+                    "Ignoring result for non-pending query: query_id={} state={}",
+                    query_uuid,
+                    query.state,
+                )
                 return
 
             # 3. Delegate ALL business logic to the service
@@ -45,7 +54,9 @@ class ResultProcessor(Processor[ResultMessage, None]):
             user_id = result.user_id or query.user_id
 
         # 4. Infrastructure/Outbound messaging
-        await self._pubsub.publish(result_channel(user_id), result.model_dump_json())
+        channel = result_channel(user_id)
+        logger.info("Publishing result to channel {}", channel)
+        await self._pubsub.publish(channel, result.model_dump_json())
 
     @staticmethod
     def _extract_query_id(result: ResultMessage) -> UUID | None:
