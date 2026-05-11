@@ -16,29 +16,30 @@
 
 - Current implementation (what's implemented in the repo today):
     - `gateway`:
-        - FastAPI app with health and proxy endpoints. The proxy endpoint forwards pipeline/run requests to the
-          orchestrator (see `gateway/api/v1/query.py`).
-        - Request context middleware and an HTTPX client manager are implemented (`gateway/middleware.py`,
-          `gateway/core/httpx_client.py`).
-        - The live gateway path today is HTTP proxying plus request-context/header helpers; the Redis/WebSocket bridge
-          is still only target-architecture work.
+        - FastAPI app with health, proxy, and WebSocket endpoints. The proxy endpoint forwards pipeline/run requests to
+          the
+          orchestrator (see `gateway/api/v1/query.py`). WebSocket results are bridged from Redis Pub/Sub (see
+          `gateway/api/v1/websocket.py`).
+        - Request context middleware and an HTTPX client manager are implemented (`shared/core/logging/middleware.py`,
+          `gateway/core/httpx_client.py`) and wired in `gateway/main.py`.
+        - The live gateway path today includes HTTP proxying plus Redis/WebSocket bridging.
         - Notes / recent specifics:
             - HTTPX lifecycle helpers are exposed from `gateway/core/httpx_client.py` as `init_httpx` and `close_httpx`
               and are wired in `gateway/main.py` lifespan.
-            - The middleware module re-exports `build_context_headers` for backward compatibility but the canonical
-              helpers live in `gateway/utils/context_helpers.py` (see the deprecation comment in
-              `gateway/middleware.py`).
+            - Request context helpers live in `gateway/utils/context_helpers.py` (use these from handlers).
     - `orchestrator`:
         - ✅ **COMPLETE:** Full DDD layering implemented with API endpoints, services, repositories, and domain models.
         - ✅ **COMPLETE:** HTTP API surface fully operational - accepts POST requests, creates PENDING tasks in
           PostgreSQL.
         - ✅ **COMPLETE:** Task enqueuing to Redis `task_queue` with proper context headers and metadata.
         - ✅ **COMPLETE:** Transaction management and unit-of-work pattern implemented in service layer.
-        - `start.sh` waits for Postgres and runs Alembic migrations before launching the FastAPI app.
-        - Notes / recent specifics:
-            - Orchestrator receives requests via gateway proxy at `POST /api/run/{pipeline_id}`.
-            - Creates QueryModel records with PENDING state, enqueues to Redis, returns 202 Accepted with query_id.
-            - Ready for result consumer implementation (see roadmap below).
+        - ✅ **COMPLETE:** Result consumer wired in `orchestrator/main.py` using `QueueConsumer` and
+          `services/result_processor.py`.
+            - `start.sh` waits for Postgres and runs Alembic migrations before launching the FastAPI app.
+            - Notes / recent specifics:
+                - Orchestrator receives requests via gateway proxy at `POST /api/run/{pipeline_id}`.
+                - Creates QueryModel records with PENDING state, enqueues to Redis, returns 202 Accepted with query_id.
+                - ResultProcessor updates DB state and publishes to `results:{user_id}` channels.
     - `ml_worker`:
         - An asyncio-based worker is implemented (`ml_worker/main.py`) that initializes a model loader, inference
           runner, and a `QueueConsumer`.
@@ -52,12 +53,12 @@
             - `shared/messaging/__init__.py` re-exports `RedisResource`, `RedisQueue`, `RedisPubSub`, `RedisNamespace`,
               `result_channel`, `get_task_queue`, `get_result_queue`, and `get_redis_client` — prefer importing these
               from the package root.
-            - `RedisQueue.dequeue()` returns raw bytes (or None) and `RedisPubSub.listen()` yields str|bytes; calling
-              code is responsible for decoding/deserializing (see `ml_worker/app/messaging/queue_consumer.py`).
+            - `RedisQueue.dequeue()` returns `str | bytes | None` and `RedisPubSub.listen()` yields `str | bytes`;
+              calling
+              code is responsible for decoding/deserializing (see `ml_worker/main.py`).
 
-  In short: the repository contains a fully operational end-to-end task submission pipeline. Gateway HTTP proxying,
-  Orchestrator API endpoints and services, ML worker task consumption, and Redis queue integration are all complete and
-  running. Remaining work focuses on result consumption, WebSocket pub/sub bridging, and advanced error handling.
+  In short: the repository contains a fully operational end-to-end task submission pipeline, including result
+  consumption and Redis/WebSocket bridging. Remaining work focuses on error handling, observability, and configuration.
 
 ## Runtime Boundaries and Integration Points
 
@@ -80,7 +81,6 @@
 
 ## Coding Patterns and Conventions to Keep
 
-- Launch services as modules in the start scripts: `uv run python -m <service>.app.main`.
 - Launch services as modules in the start scripts: `uv run python -m <service>.main`.
 - Keep ASGI import target style: `uvicorn.run("<service>.main:app", host="0.0.0.0", port=..., reload=True)` inside
   `if __name__ == "__main__"` blocks.
@@ -90,10 +90,10 @@
   `orchestrator`, `shared`.
 
 - Service lifecycle patterns to follow:
-    - The gateway uses `init_httpx(...)` and `close_httpx()` inside the FastAPI lifespan (see `gateway/app/main.py`) —
+    - The gateway uses `init_httpx(...)` and `close_httpx()` inside the FastAPI lifespan (see `gateway/main.py`) —
       new agents should prefer these helpers rather than constructing ad-hoc HTTPX clients.
-    - The request context helpers moved into `gateway/app/utils/context_helpers.py`; the older
-      `gateway/app/middleware.py` exports are kept for backward compatibility but prefer the utils module.
+    - Request context helpers live in `gateway/utils/context_helpers.py` (use these from handlers; middleware is from
+      `shared/core/logging/middleware.py`).
 
 ## Orchestrator Design Rules (from ARCH_GUIDE) — current status
 
@@ -103,8 +103,8 @@
   `session.commit()`; the service layer manages unit-of-work / transactions and cross-boundary calls.
 - ✅ **Completed:** Core API endpoints (task creation, 202 Accepted responses), services (task orchestration), and
   repositories (query persistence) are all implemented and running.
-- Current gap: Result consumer service (consumes `result_queue`, updates DB status to COMPLETED, publishes to
-  `results:{user_id}` channels) is still TODO.
+- ✅ **Completed:** Result consumer uses `QueueConsumer` in `orchestrator/main.py` and `ResultProcessor` in
+  `orchestrator/services/result_processor.py` to update DB state and publish to `results:{user_id}` channels.
 
 ## Practical Agent Workflow / How to run things
 
@@ -143,35 +143,26 @@
   Accepted.
 - ✅ Gateway HTTP proxying and request context middleware are fully operational.
 - ✅ ML worker task consumption and result publishing to `result_queue` are working end-to-end.
+- ✅ Orchestrator result consumer updates DB state and publishes to Redis channels.
+- ✅ Gateway WebSocket pub/sub bridge streams results from Redis to clients.
 - ✅ All services (gateway, orchestrator, ml_worker) running in Docker Compose with proper health checks and dependency
   ordering.
 
 ### 🔮 Next Steps (Priority Order)
 
-1. **Result Consumer Service** (Orchestrator):
-    - Implement a background service/listener in the orchestrator that consumes from `result_queue`.
-    - Parse result messages and update corresponding QueryModel records from PENDING to COMPLETED.
-    - Publish completed results to Redis channel `results:{user_id}` for WebSocket subscribers.
-
-2. **Gateway WebSocket Pub/Sub Bridge**:
-    - Wire the gateway to use `shared/messaging/RedisPubSub` for subscribing to `results:{user_id}` channels.
-    - Implement WebSocket endpoint that subscribes to user's result channel on connection.
-    - Route incoming messages from Redis to connected WebSocket clients in real-time.
-    - Handle graceful connection lifecycle (on-connect, on-disconnect, reconnect logic).
-
-3. **Error Handling & Resilience**:
+1. **Error Handling & Resilience**:
     - Implement FAILED state for tasks that encounter errors or timeouts.
     - Add retry logic for transient failures with exponential backoff.
     - Implement dead-letter queue for permanently failed tasks.
     - Add circuit breaker patterns for external API calls (e.g., Gemini API).
 
-4. **Monitoring & Observability**:
+2. **Monitoring & Observability**:
     - Add health check endpoints for all services (currently minimal).
     - Implement metrics collection: queue depth, processing latency, error rates.
     - Add structured logging with correlation IDs across all services.
     - Create alerting for critical failures and performance degradation.
 
-5. **Configuration & Service Discovery**:
+3. **Configuration & Service Discovery**:
     - Replace hardcoded orchestrator URL(s) with environment-driven configuration or service discovery.
     - Add configuration validation at startup with clear error messages.
     - Document all required environment variables per service.
