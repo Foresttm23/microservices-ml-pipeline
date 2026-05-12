@@ -4,11 +4,12 @@ from uuid import UUID
 
 from loguru import logger
 
-from orchestrator.core.enums import QueryState
+from orchestrator.exceptions import ResultPublishFailed
 from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
 from orchestrator.repositories.response_repository import ResponseRepository
 from orchestrator.services.query_service import QueryService
+from shared.core import QueryState
 from shared.db import db_session_manager
 from shared.messaging import Processor, RedisPubSub, result_channel
 from shared.schemas import ResultMessage
@@ -56,7 +57,11 @@ class ResultProcessor(Processor[ResultMessage, None]):
         # 4. Infrastructure/Outbound messaging
         channel = result_channel(user_id)
         logger.info("Publishing result to channel {}", channel)
-        await self._pubsub.publish(channel, result.model_dump_json())
+        try:
+            await self._pubsub.publish(channel, result.model_dump_json())
+        except Exception as exc:
+            raise ResultPublishFailed("Failed to publish result") from exc
+        logger.info("Result published: query_id={} channel={}", query_uuid, channel)
 
     @staticmethod
     def _extract_query_id(result: ResultMessage) -> UUID | None:

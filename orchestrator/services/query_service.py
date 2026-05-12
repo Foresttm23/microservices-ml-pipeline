@@ -4,19 +4,19 @@ from uuid import UUID
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from orchestrator.core.enums import QueryState
+from orchestrator.exceptions.orchestrator_errors import TaskEnqueueFailed
 from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
 from orchestrator.repositories.response_repository import ResponseRepository
 from orchestrator.schemas.log import LogEntity
 from orchestrator.schemas.query import QueryEntity
 from orchestrator.schemas.response import ResponseEntity
+from shared.core import QueryState
 from shared.messaging import (
     QueuePublisher,
     get_task_queue,
 )
-from shared.schemas import TaskMessage
-from shared.schemas import ResultMessage
+from shared.schemas import ResultMessage, TaskMessage
 from shared.services import BaseService
 
 
@@ -26,14 +26,13 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
     def __init__(
         self,
         session: AsyncSession,
-        query_repo: QueryRepository,
+        repo: QueryRepository,
         response_repo: ResponseRepository | None = None,
         log_repo: LogRepository | None = None,
     ):
-        self.session = session
-        self.query_repo = query_repo
         self.response_repo = response_repo or ResponseRepository(session)
         self.log_repo = log_repo or LogRepository(session)
+        super().__init__(session, repo)
 
     async def create_and_enqueue_task(
         self,
@@ -70,7 +69,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
             user_id=user_id,
             message=message,
         )
-        await self.query_repo.save(query)
+        await self.repo.save(query)
         await self.session.commit()
 
         task_payload = TaskMessage(
@@ -87,10 +86,16 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
 
         # Enqueue to Redis task queue via the generic publisher
         task_publisher = QueuePublisher(get_task_queue())
-        await task_publisher.publish(task_payload.model_dump_json())
+        try:
+            await task_publisher.publish(task_payload.model_dump_json())
+        except Exception as exc:
+            logger.warning(
+                "Task enqueue failed: query_id={} pipeline_id={}", query.id, pipeline_id
+            )
+            raise TaskEnqueueFailed("Failed to enqueue task") from exc
 
         logger.info(
-            "Created query {} and enqueued task for pipeline {}", query.id, pipeline_id
+            "Task enqueue completed: query_id={} pipeline_id={}", query.id, pipeline_id
         )
 
         return query.id
@@ -132,7 +137,8 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
                 await self.log_repo.save(log)
 
         # Persist the updated query entity state back to the database
-        await self.query_repo.save(query)
+        await self.repo.save(query)
+        logger.info("Result handled: query_id={} state={}", query.id, query.state)
 
     async def get_by_id(self, entity_id: Any) -> QueryEntity | None:
         raise NotImplementedError("QueryService.get_by_id not implemented.")

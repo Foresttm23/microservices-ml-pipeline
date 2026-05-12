@@ -4,6 +4,10 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
+from orchestrator.exceptions.domain_errors import (
+    EmptyResponseContent,
+    NegativeTokenCount,
+)
 from shared.schemas import BaseSchema
 
 
@@ -46,7 +50,7 @@ class ResponseEntity(BaseSchema):
     def update_content(self, new_content: str) -> None:
         """Update response content (immutable by default - use this for mutations)."""
         if not new_content or not new_content.strip():
-            raise ValueError("Response content cannot be empty")
+            raise EmptyResponseContent("Response content cannot be empty")
         self.content = new_content
 
     def add_token_count(self, tokens: int) -> None:
@@ -55,7 +59,7 @@ class ResponseEntity(BaseSchema):
         Validates that token count is non-negative.
         """
         if tokens < 0:
-            raise ValueError("Token count cannot be negative")
+            raise NegativeTokenCount("Token count cannot be negative")
         self.tokens_used = tokens
 
 
@@ -82,5 +86,3 @@ class ResponseResponse(ResponseBase):
 
     class Config:
         from_attributes = True
-
-

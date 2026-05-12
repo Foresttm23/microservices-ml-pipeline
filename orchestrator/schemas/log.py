@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
+from orchestrator.exceptions.domain_errors import EmptyLogMessage, EmptyMetadataKey
 from shared.schemas import BaseSchema
 
 
@@ -37,10 +38,10 @@ class LogEntity(BaseSchema):
             LogEntity instance ready for persistence
 
         Raises:
-            ValueError: If message is empty
+            EmptyLogMessage: If message is empty
         """
         if not message or not message.strip():
-            raise ValueError("Log message cannot be empty")
+            raise EmptyLogMessage("Log message cannot be empty")
 
         return cls(
             query_id=query_id,
@@ -57,10 +58,10 @@ class LogEntity(BaseSchema):
             value: Metadata value
 
         Raises:
-            ValueError: If key is empty
+            EmptyMetadataKey: If key is empty
         """
         if not key or not key.strip():
-            raise ValueError("Metadata key cannot be empty")
+            raise EmptyMetadataKey("Metadata key cannot be empty")
         self.metadata_[key] = value
 
     def get_metadata(self, key: str, default: Any = None) -> Any:
@@ -107,5 +108,3 @@ class LogResponse(LogBase):
 
     class Config:
         from_attributes = True
-
-

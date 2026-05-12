@@ -4,9 +4,10 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
-from orchestrator.core.enums import QueryState
+from orchestrator.exceptions.domain_errors import InvalidQueryStateTransition
 from orchestrator.schemas.log import LogResponse
 from orchestrator.schemas.response import ResponseResponse
+from shared.core import QueryState
 from shared.schemas import BaseSchema
 
 
@@ -35,10 +36,14 @@ class QueryEntity(BaseSchema):
     def transition_to(self, next_state: QueryState) -> None:
         """Internal state machine logic."""
         if self.state == QueryState.COMPLETED and next_state != QueryState.COMPLETED:
-            raise ValueError(f"Cannot transition from COMPLETED to {next_state}")
+            raise InvalidQueryStateTransition(
+                f"Cannot transition from COMPLETED to {next_state}"
+            )
 
         if self.state == QueryState.FAILED and next_state != QueryState.FAILED:
-            raise ValueError(f"Cannot transition from FAILED to {next_state}")
+            raise InvalidQueryStateTransition(
+                f"Cannot transition from FAILED to {next_state}"
+            )
 
         self.state = next_state
 

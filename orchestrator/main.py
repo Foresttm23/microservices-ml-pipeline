@@ -9,6 +9,7 @@ from loguru import logger
 
 from orchestrator.api.v1 import run
 from orchestrator.core.config import get_settings
+from orchestrator.core.exceptions import ORCHESTRATOR_ERROR_MAP
 from orchestrator.services.result_processor import ResultProcessor
 from shared.core.exceptions import global_exception_handler
 from shared.core.logging import setup_logging
@@ -53,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-global_exception_handler(app)
+global_exception_handler(app, service_error_map=ORCHESTRATOR_ERROR_MAP)
 
 app.add_middleware(LoggingContextMiddleware)
 app.add_middleware(ResponseLogMiddleware)
