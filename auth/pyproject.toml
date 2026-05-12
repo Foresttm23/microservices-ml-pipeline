@@ -1,0 +1,43 @@
+[project]
+name = "auth"
+version = "0.1.0"
+description = "Auth service"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.30.0",
+    "bcrypt>=5.0.0",
+    "fastapi[standard]>=0.136.1",
+    "pwdlib[bcrypt]>=0.3.0",
+    "pydantic-settings>=2.2.0",
+    "PyJWT>=2.8.0",
+    "shared",
+    "sqlalchemy[asyncio]>=2.0.49",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[tool.setuptools]
+packages = ["auth"]
+package-dir = { "auth" = "." }
+
+
+[tool.pyright]
+# Per-package pyright settings to keep IDEs and basedpyright happy.
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+
+# Analyze the package source in this folder
+include = ["."]
+
+exclude = [
+  "**/__pycache__/**",
+  "**/migrations/**",
+  "**/.venv/**",
+  "**/venv/**",
+]
+
+reportMissingImports = false
+reportMissingTypeStubs = false
