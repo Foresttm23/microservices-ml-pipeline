@@ -3,8 +3,11 @@ from uuid import uuid4
 
 from loguru import logger
 
+from ml_worker.core.exceptions.definitions import ML_ERROR_MAP
 from ml_worker.core.loader import ModelLoader
 from ml_worker.schemas.text_generator import GenerationResult
+from shared.core.enums import QueryState
+from shared.core.exceptions import get_error_definition
 from shared.schemas import ResultMessage, TaskMessage
 
 
@@ -25,7 +28,7 @@ class InferenceRunner(Runner):
                 prompt=task.prompt,
                 interaction_id=interaction_id,
             )
-            status = "mocked" if result.is_dry_run else "completed"
+            status = QueryState.MOCKED if result.is_dry_run else QueryState.COMPLETED
             logger.info("Inference completed: status={} model={}", status, result.model)
             return ResultMessage(
                 correlation_id=task.correlation_id,
@@ -38,13 +41,17 @@ class InferenceRunner(Runner):
                 metadata=task.metadata,
             )
         except Exception as exc:
-            logger.exception("Inference failed")
+            definition = get_error_definition(exc, ML_ERROR_MAP)
+            error_code = definition.code if definition else "ml_processing_failed"
+            logger.bind(error_code=error_code).exception("Inference failed")
             return ResultMessage(
                 correlation_id=task.correlation_id,
                 interaction_id=interaction_id,
-                status="failed",
+                status=QueryState.FAILED,
                 model=task.model or "unknown",
-                error=str(exc),
+                error=error_code,
                 user_id=task.user_id,
                 metadata=task.metadata,
             )
+        finally:
+            logger.info("Inference finished: interaction_id={}", interaction_id)

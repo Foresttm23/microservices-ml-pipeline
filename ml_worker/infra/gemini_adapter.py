@@ -5,6 +5,11 @@ from httpx import AsyncClient, HTTPError, Response
 from loguru import logger
 
 from ml_worker.core.config import GeminiSettings
+from ml_worker.core.exceptions.definitions import (
+    ModelInitializationFailed,
+    ProviderRequestFailed,
+    ProviderResponseInvalid,
+)
 from ml_worker.schemas.text_generator import GenerationResult
 from ml_worker.utils.gemini import (
     extract_text_from_gemini_response,
@@ -23,7 +28,9 @@ class GeminiTextGenerator(TextGenerator):
         self._settings = settings
 
         if not self._settings.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY is required unless ML_WORKER_DRY_RUN=true")
+            raise ModelInitializationFailed(
+                "GEMINI_API_KEY is required unless ML_WORKER_DRY_RUN=true"
+            )
 
     async def generate(self, prompt: str, interaction_id: UUID) -> GenerationResult:
         model = self._settings.GEMINI_MODEL
@@ -38,7 +45,9 @@ class GeminiTextGenerator(TextGenerator):
         response_payload = gemini_response.json()
         text = extract_text_from_gemini_response(response_payload)
         if not text:
-            raise RuntimeError("Gemini response did not include text output")
+            raise ProviderResponseInvalid(
+                "Gemini response did not include text output"
+            )
         tokens_used = extract_tokens_from_gemini_response(response_payload)
         return GenerationResult(
             text=text,
@@ -63,7 +72,9 @@ class GeminiTextGenerator(TextGenerator):
                 logger.warning(
                     "Gemini request failed with status {}", response.status_code
                 )
-                raise RuntimeError(f"Gemini request failed: {response.text}") from exc
+                raise ProviderRequestFailed(
+                    f"Gemini request failed: {response.text}"
+                ) from exc
 
             logger.debug("Gemini response status {}", response.status_code)
             return response
