@@ -19,7 +19,7 @@ from shared.messaging import (
     get_redis_client,
     get_result_queue,
 )
-from shared.middlewares import LoggingContextMiddleware
+from shared.middlewares import LoggingContextMiddleware, ResponseLogMiddleware
 from shared.schemas.result import ResultMessage
 
 
@@ -56,6 +56,7 @@ app = FastAPI(lifespan=lifespan)
 global_exception_handler(app)
 
 app.add_middleware(LoggingContextMiddleware)
+app.add_middleware(ResponseLogMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]

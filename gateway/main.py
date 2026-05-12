@@ -15,7 +15,11 @@ from gateway.core.config import get_settings
 from gateway.infra.httpx_client import close_httpx, init_httpx
 from shared.core.exceptions import global_exception_handler
 from shared.core.logging import setup_logging
-from shared.middlewares import JWTAuthMiddleware, LoggingContextMiddleware
+from shared.middlewares import (
+    JWTAuthMiddleware,
+    LoggingContextMiddleware,
+    ResponseLogMiddleware,
+)
 
 
 @asynccontextmanager
@@ -50,6 +54,7 @@ global_exception_handler(app)
 
 app.add_middleware(LoggingContextMiddleware)
 app.add_middleware(JWTAuthMiddleware, settings=get_settings())
+app.add_middleware(ResponseLogMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
