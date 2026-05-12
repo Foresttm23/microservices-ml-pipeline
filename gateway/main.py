@@ -12,6 +12,7 @@ from gateway.api.v1.health import router as health_router
 from gateway.api.v1.query import router as query_router
 from gateway.api.v1.websocket import router as websocket_router
 from gateway.core.config import get_settings
+from gateway.core.exceptions.definitions import GATEWAY_ERROR_MAP
 from gateway.infra.httpx_client import close_httpx, init_httpx
 from shared.core.exceptions import global_exception_handler
 from shared.core.logging import setup_logging
@@ -50,7 +51,7 @@ app.include_router(health_router)
 app.include_router(query_router)
 app.include_router(websocket_router)
 
-global_exception_handler(app)
+global_exception_handler(app, service_error_map=GATEWAY_ERROR_MAP)
 
 app.add_middleware(LoggingContextMiddleware)
 app.add_middleware(JWTAuthMiddleware, settings=get_settings())
