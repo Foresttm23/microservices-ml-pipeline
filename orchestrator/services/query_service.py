@@ -16,7 +16,7 @@ from shared.messaging import (
     get_task_queue,
 )
 from shared.schemas import TaskMessage
-from shared.schemas.result import ResultMessage
+from shared.schemas import ResultMessage
 from shared.services import BaseService
 
 

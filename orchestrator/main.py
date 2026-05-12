@@ -9,11 +9,17 @@ from loguru import logger
 
 from orchestrator.api.v1 import run
 from orchestrator.core.config import get_settings
-from orchestrator.db.session import close_db, init_db
 from orchestrator.services.result_processor import ResultProcessor
-from shared.core import register_exception_handlers
-from shared.core.logging import LoggingContextMiddleware, setup_logging
-from shared.messaging import QueueConsumer, RedisPubSub, get_redis_client, get_result_queue
+from shared.core.exceptions import global_exception_handler
+from shared.core.logging import setup_logging
+from shared.db import close_db, init_db
+from shared.messaging import (
+    QueueConsumer,
+    RedisPubSub,
+    get_redis_client,
+    get_result_queue,
+)
+from shared.middlewares import LoggingContextMiddleware
 from shared.schemas.result import ResultMessage
 
 
@@ -24,7 +30,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Startup")
     orchestrator_settings = get_settings()
-    init_db(orchestrator_settings, pool_size=20, max_overflow=10)
+    init_db(orchestrator_settings.DATABASE_URL, pool_size=20, max_overflow=10)
 
     result_queue = get_result_queue()
     pubsub = RedisPubSub(get_redis_client())
@@ -47,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-register_exception_handlers(app)
+global_exception_handler(app)
 
 app.add_middleware(LoggingContextMiddleware)
 

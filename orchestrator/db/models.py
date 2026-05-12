@@ -6,10 +6,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from orchestrator.core.enums import QueryState
-from orchestrator.db.base import Base, CreatedAtMixin, UpdatedAtMixin
+from orchestrator.db.base import OrchestratorBase
+from shared.db import CreatedAtMixin, UpdatedAtMixin
 
 
-class ResponseModel(Base, CreatedAtMixin, UpdatedAtMixin):
+class ResponseModel(OrchestratorBase, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "responses"
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     query_id: Mapped[UUID] = mapped_column(
@@ -22,7 +23,7 @@ class ResponseModel(Base, CreatedAtMixin, UpdatedAtMixin):
     query: Mapped["QueryModel"] = relationship("QueryModel", back_populates="responses")
 
 
-class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
+class QueryModel(OrchestratorBase, CreatedAtMixin, UpdatedAtMixin):
     __tablename__ = "queries"
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[str] = mapped_column(index=True)
@@ -53,7 +54,7 @@ class QueryModel(Base, CreatedAtMixin, UpdatedAtMixin):
     )
 
 
-class LogModel(Base, CreatedAtMixin):
+class LogModel(OrchestratorBase, CreatedAtMixin):
     __tablename__ = "logs"
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     query_id: Mapped[UUID] = mapped_column(

@@ -2,13 +2,11 @@ from fastapi import APIRouter
 from loguru import logger
 from starlette import status
 
-from orchestrator.core.dependencies import (
+from orchestrator.dependencies.service import QueryServiceDep
+from shared.dependencies import (
     CorrelationIdDep,
-    DBSessionDep,
-    QueryRepoDep,
     UserIdDep,
 )
-from orchestrator.services.query_service import QueryService
 from shared.schemas import PipelineRequest, PipelineResponse
 
 router = APIRouter()
@@ -20,8 +18,7 @@ async def run_pipeline(
     payload: PipelineRequest,
     correlation_id: CorrelationIdDep,
     user_id: UserIdDep,
-    session: DBSessionDep,
-    query_repo: QueryRepoDep,
+    service: QueryServiceDep,
 ) -> PipelineResponse:
     """
     Accepts a pipeline request.
@@ -32,7 +29,6 @@ async def run_pipeline(
         pipeline_id,
     )
 
-    service = QueryService(session, query_repo)
     query_id = await service.create_and_enqueue_task(
         correlation_id=correlation_id,
         user_id=user_id,

@@ -7,14 +7,19 @@ class OrchestratorSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
     # Server
-    PORT: int = 8081
+    PORT: int = 8001
 
     # Database
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
-    POSTGRES_DB: str = "ml_microservices"
+    POSTGRES_DB: str = "orchestrator_db"
     POSTGRES_USER: str = "ml_user"
     POSTGRES_PASSWORD: str = "change_me_in_local_dev"
+
+    # Redis
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     @property
     def DATABASE_URL(self) -> str:

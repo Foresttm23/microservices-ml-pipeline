@@ -5,13 +5,13 @@ from uuid import UUID
 from loguru import logger
 
 from orchestrator.core.enums import QueryState
-from orchestrator.db.session import db_session_manager
 from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
 from orchestrator.repositories.response_repository import ResponseRepository
 from orchestrator.services.query_service import QueryService
+from shared.db import db_session_manager
 from shared.messaging import Processor, RedisPubSub, result_channel
-from shared.schemas.result import ResultMessage
+from shared.schemas import ResultMessage
 
 
 class ResultProcessor(Processor[ResultMessage, None]):
