@@ -17,7 +17,7 @@ class LoggingContextMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        correlation_id = str(uuid4())
+        correlation_id = request.headers.get(CORRELATION_ID_HEADER) or str(uuid4())
         user_id = self._extract_user_id(request, debug=self._settings.DEBUG)
 
         request.state.correlation_id = correlation_id

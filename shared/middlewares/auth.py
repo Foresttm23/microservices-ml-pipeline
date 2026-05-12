@@ -28,7 +28,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         self._settings = settings
         super().__init__(app)
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next) -> JSONResponse | Any | None:
         # 1. Start as anonymous
         request.state.user_id = "anonymous"
 
@@ -38,22 +38,33 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 
         # 2. Try to extract and decode the token
         token = self._extract_bearer_token(request)
-
         if token:
-            try:
-                payload = self._decode_token(token)
-                user_id = payload.get(self._settings.JWT_USER_ID_CLAIM)
-                if user_id:
-                    # Identity found! Update the state
-                    request.state.user_id = str(user_id)
-            except jwt.PyJWTError as exc:
-                # If they provided a BROKEN token, we block them even on public paths
-                # because a malformed identity is a security risk.
-                logger.warning("JWT validation failed: {}", exc)
-                return self._unauthorized("Invalid or expired token")
+            return await self._handle_token_auth(request, call_next, token)
 
-        # 3. Final Enforcement Gate
-        # If still anonymous, only let them through if the path is public
+        return await self._fallback_to_anonymous(request, call_next)
+
+    async def _handle_token_auth(
+        self, request: Request, call_next, token: str
+    ) -> JSONResponse | Any:
+        try:
+            payload = self._decode_token(token)
+            user_id = payload.get(self._settings.JWT_USER_ID_CLAIM)
+
+            if user_id:
+                request.state.user_id = str(user_id)
+                # Success! Contextualize logs and move to the next middleware
+                with logger.contextualize(user_id=request.state.user_id):
+                    return await call_next(request)
+
+            return await self._fallback_to_anonymous(request, call_next)
+
+        except jwt.PyJWTError as exc:
+            logger.warning("JWT validation failed: {}", exc)
+            return self._unauthorized("Invalid or expired token")
+
+    async def _fallback_to_anonymous(
+        self, request: Request, call_next
+    ) -> JSONResponse | Any | None:
         if request.state.user_id == "anonymous":
             if not self._is_public_path(request.url.path):
                 return self._unauthorized("Authentication required for this resource")
