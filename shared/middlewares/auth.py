@@ -1,0 +1,97 @@
+from __future__ import annotations
+
+from typing import Any, Protocol, cast
+
+import jwt
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from loguru import logger
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+
+
+class JWTSettingsProtocol(Protocol):
+    """Protocol defining required JWT configuration fields."""
+
+    JWT_ENABLED: bool
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    JWT_ISSUER: str | None
+    JWT_AUDIENCE: str | None
+    JWT_USER_ID_CLAIM: str
+    JWT_LEEWAY_SECONDS: int
+    JWT_PUBLIC_PATHS: list[str]
+
+
+class JWTAuthMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, settings: JWTSettingsProtocol) -> None:
+        self._settings = settings
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next):
+        # 1. Start as anonymous
+        request.state.user_id = "anonymous"
+
+        # Global bypasses
+        if not self._settings.JWT_ENABLED or request.method == "OPTIONS":
+            return await call_next(request)
+
+        # 2. Try to extract and decode the token
+        token = self._extract_bearer_token(request)
+
+        if token:
+            try:
+                payload = self._decode_token(token)
+                user_id = payload.get(self._settings.JWT_USER_ID_CLAIM)
+                if user_id:
+                    # Identity found! Update the state
+                    request.state.user_id = str(user_id)
+            except jwt.PyJWTError as exc:
+                # If they provided a BROKEN token, we block them even on public paths
+                # because a malformed identity is a security risk.
+                logger.warning("JWT validation failed: {}", exc)
+                return self._unauthorized("Invalid or expired token")
+
+        # 3. Final Enforcement Gate
+        # If still anonymous, only let them through if the path is public
+        if request.state.user_id == "anonymous":
+            if not self._is_public_path(request.url.path):
+                return self._unauthorized("Authentication required for this resource")
+
+        return await call_next(request)
+
+    def _decode_token(self, token: str) -> dict[str, object]:
+        audience = self._settings.JWT_AUDIENCE
+        issuer = self._settings.JWT_ISSUER
+        leeway = float(self._settings.JWT_LEEWAY_SECONDS)
+        options = None if audience else cast(Any, {"verify_aud": False})
+
+        return jwt.decode(
+            token,
+            key=self._settings.JWT_SECRET_KEY,
+            algorithms=[self._settings.JWT_ALGORITHM],
+            leeway=leeway,
+            issuer=issuer,
+            audience=audience,
+            options=options,
+        )
+
+    def _extract_bearer_token(self, request: Request) -> str | None:
+        auth_header = request.headers.get("authorization")
+        if not auth_header:
+            return None
+
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return None
+
+        return parts[1]
+
+    def _is_public_path(self, path: str) -> bool:
+        return any(
+            path.startswith(prefix) for prefix in self._settings.JWT_PUBLIC_PATHS
+        )
+
+    @staticmethod
+    def _unauthorized(message: str) -> JSONResponse:
+        return JSONResponse(status_code=401, content={"detail": message})

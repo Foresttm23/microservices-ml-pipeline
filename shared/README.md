@@ -87,7 +87,7 @@ from shared import (
 )
 
 # Core utilities
-from shared.core import register_exception_handlers
+from shared.core.exceptions import register_exception_handlers
 from shared.core.logging import (
     LoggingContextMiddleware,
     setup_logging,
@@ -324,7 +324,7 @@ channel = result_channel("user_123")
 async for message in pubsub.listen(channel):
     if isinstance(message, bytes):
         message = message.decode()
-    
+
     result = ResultMessage.model_validate_json(message)
     print(f"Result: {result.output_text}")
 ```
