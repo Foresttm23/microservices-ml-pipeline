@@ -11,4 +11,4 @@ def build_context_headers(request: Request) -> dict[str, str]:
             USER_ID_HEADER: request.state.user_id,
         }
     except AttributeError:
-        raise MissingRequestStateException("correlation_id or user_id are empty")
+        raise MissingRequestStateException("Request context missing required fields: correlation_id or user_id")

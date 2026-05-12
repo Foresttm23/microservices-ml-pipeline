@@ -12,6 +12,7 @@ COPY pyproject.toml uv.lock ./
 COPY gateway/pyproject.toml ./gateway/pyproject.toml
 COPY ml_worker/pyproject.toml ./ml_worker/pyproject.toml
 COPY orchestrator/pyproject.toml ./orchestrator/pyproject.toml
+COPY auth/pyproject.toml ./auth/pyproject.toml
 COPY shared/pyproject.toml ./shared/pyproject.toml
 # Install dependencies (cached)
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -26,6 +27,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # --- Stage 2: Runtime ---
 FROM python:3.13.5-slim
+# Install 'netcat' so start.sh can ping the DB/Queue
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
 

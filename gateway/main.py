@@ -7,14 +7,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from gateway.api.v1.auth import router as auth_router
 from gateway.api.v1.health import router as health_router
 from gateway.api.v1.query import router as query_router
 from gateway.api.v1.websocket import router as websocket_router
 from gateway.core.config import get_settings
-from gateway.core.httpx_client import close_httpx, init_httpx
-from gateway.core.jwt_middleware import JWTAuthMiddleware
-from shared.core import register_exception_handlers
-from shared.core.logging import LoggingContextMiddleware, setup_logging
+from gateway.infra.httpx_client import close_httpx, init_httpx
+from shared.core.exceptions import global_exception_handler
+from shared.core.logging import setup_logging
+from shared.middlewares import JWTAuthMiddleware, LoggingContextMiddleware
 
 
 @asynccontextmanager
@@ -40,13 +41,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(query_router)
 app.include_router(websocket_router)
 
-register_exception_handlers(app)
+global_exception_handler(app)
+
 app.add_middleware(LoggingContextMiddleware)
-app.add_middleware(JWTAuthMiddleware)
+app.add_middleware(JWTAuthMiddleware, settings=get_settings())
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]

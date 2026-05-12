@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from loguru import logger
 
 from gateway.core.config import get_settings
-from gateway.core.dependencies import HTTPXClientDep
+from gateway.dependencies.httpx import HTTPXClientDep
 from shared.schemas import PipelineRequest
 from shared.utils import forward_to_service
 

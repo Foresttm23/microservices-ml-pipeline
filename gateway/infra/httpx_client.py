@@ -2,7 +2,7 @@ from typing import Any
 
 from httpx import AsyncClient
 
-from shared.core import SessionNotInitializedException
+from shared.core.exceptions import SessionNotInitializedException
 
 
 class HTTPXClientManager:
