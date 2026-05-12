@@ -3,7 +3,7 @@
 The **ML Worker** is the inference engine. It consumes tasks from Redis, executes ML inference via Google Gemini API,
 and publishes results back to Redis for the Orchestrator to process.
 
-**Port:** 8082 (host) → 8000 (container)  
+**Port:** 8082 (host) → 8002 (container)  
 **Language:** Python (asyncio)  
 **ML Provider:** Google Gemini API  
 **Status:** ✅ Complete
@@ -65,7 +65,7 @@ ml_worker/
 ### Environment Variables
 
 ```bash
-PORT=8000                              # Unused (no HTTP endpoints)
+PORT=8002                              # Unused (no HTTP endpoints)
 GEMINI_API_KEY=abc123...               # Required for live inference
 GEMINI_MODEL=gemini-2.0-flash          # Model name (default)
 GEMINI_API_BASE=https://...            # API base URL (optional)

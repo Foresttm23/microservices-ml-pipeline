@@ -1,6 +1,6 @@
 from loguru import logger
 
-from ml_worker.runner import Runner
+from ml_worker.worker.runner import Runner
 from shared.messaging import Publisher
 from shared.messaging.protocols import Processor
 from shared.schemas import ResultMessage, TaskMessage

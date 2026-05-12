@@ -3,14 +3,14 @@ import asyncio
 from loguru import logger
 
 from ml_worker.core.config import GeminiSettings, get_gemini_settings
-from ml_worker.infrastructure.gemini_adapter import (
+from ml_worker.core.loader import GeminiModelLoader
+from ml_worker.infra.gemini_adapter import (
     GeminiTextGenerator,
     MockTextGenerator,
     TextGenerator,
 )
-from ml_worker.loader import GeminiModelLoader
-from ml_worker.runner import InferenceRunner, Runner
-from ml_worker.task_processor import TaskProcessor
+from ml_worker.services.task_processor import TaskProcessor
+from ml_worker.worker.runner import InferenceRunner, Runner
 from shared.core.logging import setup_logging
 from shared.messaging import (
     Processor,

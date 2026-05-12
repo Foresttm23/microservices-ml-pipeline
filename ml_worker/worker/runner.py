@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from loguru import logger
 
-from ml_worker.loader import ModelLoader
+from ml_worker.core.loader import ModelLoader
 from ml_worker.schemas.text_generator import GenerationResult
 from shared.schemas import ResultMessage, TaskMessage
 

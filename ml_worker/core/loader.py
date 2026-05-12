@@ -2,7 +2,7 @@ from uuid import UUID
 from typing import Protocol
 
 from ml_worker.core.config import GeminiSettings
-from ml_worker.infrastructure.gemini_adapter import TextGenerator
+from ml_worker.infra.gemini_adapter import TextGenerator
 from ml_worker.schemas.text_generator import GenerationResult
 
 
