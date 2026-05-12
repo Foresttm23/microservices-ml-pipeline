@@ -4,7 +4,7 @@ from uuid import UUID
 
 from loguru import logger
 
-from orchestrator.exceptions import ResultPublishFailed
+from orchestrator.exceptions.orchestrator_errors import ResultPublishFailed
 from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
 from orchestrator.repositories.response_repository import ResponseRepository
