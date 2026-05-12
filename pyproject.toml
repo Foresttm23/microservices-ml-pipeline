@@ -8,6 +8,7 @@ dependencies = []
 dev = [
     "basedpyright>=1.39.3",
     "ruff>=0.15.12",
+    "pytest>=8.3.5",
 ]
 
 [tool.uv.workspace]
@@ -16,6 +17,7 @@ members = [
     "shared",
     "ml_worker",
     "orchestrator",
+    "auth",
 ]
 
 
@@ -31,6 +33,7 @@ include = [
     "shared",
     "ml_worker",
     "orchestrator",
+    "auth",
 ]
 
 # Common excludes (build artifacts, migrations, venvs)
