@@ -10,7 +10,7 @@ from auth.core.config import get_settings
 from shared.core.exceptions import global_exception_handler
 from shared.core.logging import setup_logging
 from shared.db import close_db, init_db
-from shared.middlewares import LoggingContextMiddleware
+from shared.middlewares import JWTAuthMiddleware, LoggingContextMiddleware
 
 
 @asynccontextmanager
@@ -32,9 +32,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 global_exception_handler(app)
 
+app.add_middleware(JWTAuthMiddleware, settings=get_settings())
 app.add_middleware(LoggingContextMiddleware)
-# app.add_middleware(JWTAuthMiddleware, settings=get_settings())
-
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]

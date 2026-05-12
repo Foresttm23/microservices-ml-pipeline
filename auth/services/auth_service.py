@@ -3,6 +3,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import jwt
+from loguru import logger
 from pwdlib import PasswordHash
 from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -113,11 +114,6 @@ class AuthService(BaseService[UserEntity, UserRepository]):
     async def get_user_profile(self, user_id: UUID) -> UserEntity | None:
         return await self.user_repo.get_by_id(user_id)
 
-    def decode_access_token(self, token: str) -> dict[str, object]:
-        payload = self._decode_token(token)
-        if payload.get("token_type") != "access":
-            raise ValueError("Invalid access token")
-        return payload
 
     def _decode_token(self, token: str) -> dict[str, object]:
         audience = self.settings.JWT_AUDIENCE

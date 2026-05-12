@@ -17,13 +17,25 @@ class AuthSettings(BaseSettings):
     POSTGRES_PASSWORD: str = "change_me_in_local_dev"
 
     # JWT
+    JWT_ENABLED: bool = True
     JWT_SECRET_KEY: str = "dev-secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_ISSUER: str | None = None
     JWT_AUDIENCE: str | None = None
+    JWT_USER_ID_CLAIM: str = "sub"
+    JWT_LEEWAY_SECONDS: int = 0
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 14
-    JWT_LEEWAY_SECONDS: int = 0
+    JWT_PUBLIC_PATHS: list[str] = [
+        "/",
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/auth/register",
+        "/auth/login",
+        "/auth/refresh",
+        "/auth/logout",
+    ]
 
     @property
     def DATABASE_URL(self) -> str:
