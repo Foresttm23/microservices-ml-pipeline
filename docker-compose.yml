@@ -1,19 +1,19 @@
 services:
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 20
       start_period: 5s
 
-  postgres:
+  orchestrator-db:
     image: postgres:16-alpine
     env_file:
       - path: .env
@@ -21,11 +21,29 @@ services:
       - path: orchestrator/.env
         required: false
     ports:
-      - "5432:5432"
+      - "5433:5432" # Changed host port to 5433
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - orchestrator_data:/var/lib/postgresql/data # Unique volume
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  auth-db:
+    image: postgres:16-alpine
+    env_file:
+      - path: .env
+        required: false
+      - path: auth/.env
+        required: false
+    ports:
+      - "5432:5432" # Keeps standard 5432
+    volumes:
+      - auth_data:/var/lib/postgresql/data # Unique volume
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -56,12 +74,27 @@ services:
       context: .
       dockerfile: orchestrator/Dockerfile
     depends_on:
-      postgres:
+      orchestrator-db:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
       - "8081:8001"  # Host 8081 -> Container 8001
+
+  auth:
+    env_file:
+      - path: .env
+        required: false
+      - path: auth/.env
+        required: false
+    build:
+      context: .
+      dockerfile: auth/Dockerfile
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "8083:8003"  # Host 8083 -> Container 8003
 
   ml_worker:
     env_file:
@@ -76,8 +109,9 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8082:8000"  # Host 8082 -> Container 8000
+      - "8082:8002"  # Host 8082 -> Container 8000
 
 volumes:
-  postgres_data:
+  orchestrator_data:
+  auth_data:
   redis_data:
