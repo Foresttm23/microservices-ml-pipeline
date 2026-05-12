@@ -7,6 +7,7 @@ from loguru import logger
 
 from auth.api.v1.auth import router as auth_router
 from auth.core.config import get_settings
+from auth.exceptions.auth_errors import AUTH_ERROR_MAP
 from shared.core.exceptions import global_exception_handler
 from shared.core.logging import setup_logging
 from shared.db import close_db, init_db
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-global_exception_handler(app)
+global_exception_handler(app, service_error_map=AUTH_ERROR_MAP)
 
 app.add_middleware(JWTAuthMiddleware, settings=get_settings())
 app.add_middleware(LoggingContextMiddleware)
