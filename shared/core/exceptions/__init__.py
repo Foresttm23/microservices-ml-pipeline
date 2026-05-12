@@ -3,8 +3,12 @@ from shared.core.exceptions.api import (
     NotFoundException,
     UnauthorizedException,
 )
-from shared.core.exceptions.base import BaseAppException
-from shared.core.exceptions.handler import global_exception_handler
+from shared.core.exceptions.base import ErrorDefinition
+from shared.core.exceptions.handler import (
+    GENERAL_ERROR_MAP,
+    get_error_definition,
+    global_exception_handler,
+)
 from shared.core.exceptions.system import (
     MissingHeaderException,
     MissingRequestStateException,
@@ -13,7 +17,9 @@ from shared.core.exceptions.system import (
 
 __all__ = [
     "global_exception_handler",
-    "BaseAppException",
+    "get_error_definition",
+    "ErrorDefinition",
+    "GENERAL_ERROR_MAP",
     "BadRequestException",
     "NotFoundException",
     "UnauthorizedException",

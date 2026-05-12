@@ -1,5 +1,8 @@
-class BaseAppException(Exception):
-    def __init__(self, detail: str, status_code: int = 500):
-        self.detail = detail
-        self.status_code = status_code
-        super().__init__(detail)
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class ErrorDefinition:
+    code: str
+    status_code: int | None = None
+    detail: str | None = None
