@@ -5,7 +5,7 @@ from sqlalchemy import Enum, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from orchestrator.core.enums import QueryState
+from shared.core.enums import QueryState
 from orchestrator.db.base import OrchestratorBase
 from shared.db import CreatedAtMixin, UpdatedAtMixin
 

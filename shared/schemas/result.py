@@ -1,16 +1,17 @@
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
 
+from shared.core.enums import QueryState
 from shared.schemas.base import BaseSchema
 
 
 class ResultMessage(BaseSchema):
     correlation_id: UUID
     interaction_id: UUID
-    status: Literal["completed", "failed", "mocked"]
+    status: QueryState
     model: str
     output_text: str | None = None
     tokens_used: int | None = None
