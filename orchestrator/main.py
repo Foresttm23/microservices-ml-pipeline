@@ -56,8 +56,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 global_exception_handler(app, service_error_map=ORCHESTRATOR_ERROR_MAP)
 
-app.add_middleware(LoggingContextMiddleware)
 app.add_middleware(ResponseLogMiddleware)
+app.add_middleware(LoggingContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]

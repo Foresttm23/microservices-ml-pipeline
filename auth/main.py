@@ -37,9 +37,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 global_exception_handler(app, service_error_map=AUTH_ERROR_MAP)
 
+app.add_middleware(ResponseLogMiddleware)
 app.add_middleware(JWTAuthMiddleware, settings=get_settings())
 app.add_middleware(LoggingContextMiddleware)
-app.add_middleware(ResponseLogMiddleware)
 
 
 app.add_middleware(

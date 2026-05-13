@@ -53,9 +53,9 @@ app.include_router(websocket_router)
 
 global_exception_handler(app, service_error_map=GATEWAY_ERROR_MAP)
 
-app.add_middleware(LoggingContextMiddleware)
-app.add_middleware(JWTAuthMiddleware, settings=get_settings())
 app.add_middleware(ResponseLogMiddleware)
+app.add_middleware(JWTAuthMiddleware, settings=get_settings())
+app.add_middleware(LoggingContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
