@@ -1,49 +1,95 @@
 # Auth Service
 
-Auth service with rotating refresh tokens and JWT access tokens.
+FastAPI auth service that issues JWT access and refresh tokens, rotates refresh tokens, and exposes a protected
+`/auth/me` endpoint.
 
-## Architecture
+## What This Service Does
 
-- **JWT Middleware**: Access token validation is handled by `JWTAuthMiddleware` (from shared package). The middleware
-  extracts
-  the token from the Authorization header, validates it, and sets `request.state.user_id` for authenticated requests.
-- **Protected Endpoints**: The `/auth/me` endpoint requires authentication (user_id must be present in request state).
-- **Public Endpoints**: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` are accessible without a valid
-  access token.
-- **Token Management**: The service handles token creation (access + refresh) and refresh token rotation with revocation
-  tracking.
+- User registration and login
+- JWT access + refresh token issuance
+- Refresh token rotation and logout
+- Protected user profile endpoint
 
-## Endpoints
+## API Endpoints
 
-- `POST /auth/register` - Public
-- `POST /auth/login` - Public
-- `POST /auth/refresh` - Public
-- `POST /auth/logout` - Public
-- `GET /auth/me` - Requires authentication
+Public:
 
-## Environment
+- `POST /auth/register` - Create a user
+- `POST /auth/login` - Authenticate and receive access + refresh tokens
+- `POST /auth/refresh` - Rotate refresh token and receive new pair
+- `POST /auth/logout` - Revoke refresh token
 
-**Server**:
+Protected:
+
+- `GET /auth/me` - Requires a valid access token
+
+## Runtime Behavior (from `auth/main.py`)
+
+- **Lifespan**: initializes a shared async DB engine and closes it on shutdown.
+- **Middleware stack**:
+    - `JWTAuthMiddleware` for access token validation
+    - `LoggingContextMiddleware` for request context
+    - `ResponseLogMiddleware` for structured response logs
+    - CORS is enabled for all origins
+
+## Configuration
+
+These are read by `auth/core/config.py`. Defaults below reflect `auth/.env` (Docker Compose); override for local dev.
+
+Server:
 
 - `PORT` (default: 8003)
 
-**Database**:
+Database:
 
-- `DB_HOST` (default: localhost)
+- `DB_HOST` (default: auth-db)
 - `DB_PORT` (default: 5432)
 - `POSTGRES_DB` (default: auth_db)
 - `POSTGRES_USER` (default: ml_user)
 - `POSTGRES_PASSWORD` (default: change_me_in_local_dev)
 
-**JWT & Authentication**:
+JWT:
 
-- `JWT_ENABLED` (default: true) - Enable/disable JWT middleware
-- `JWT_SECRET_KEY` (default: dev-secret) - Secret for signing and validating tokens
-- `JWT_ALGORITHM` (default: HS256) - Algorithm for token operations
-- `JWT_ISSUER` (optional) - Expected token issuer
-- `JWT_AUDIENCE` (optional) - Expected token audience
-- `JWT_USER_ID_CLAIM` (default: sub) - Claim name for user ID
-- `JWT_LEEWAY_SECONDS` (default: 0) - Clock skew tolerance
-- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (default: 60) - Access token TTL
-- `JWT_REFRESH_TOKEN_EXPIRE_DAYS` (default: 14) - Refresh token TTL
-- `JWT_PUBLIC_PATHS` - Routes that don't require authentication (auto-configured)
+- `JWT_ENABLED` (default: true)
+- `JWT_SECRET_KEY` (default: change_me)
+- `JWT_ALGORITHM` (default: HS256)
+- `JWT_ISSUER` (optional)
+- `JWT_AUDIENCE` (optional)
+- `JWT_USER_ID_CLAIM` (default: sub)
+- `JWT_LEEWAY_SECONDS` (default: 0)
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (default: 60)
+- `JWT_REFRESH_TOKEN_EXPIRE_DAYS` (default: 14)
+- `JWT_PUBLIC_PATHS` (auto-configured)
+
+Derived:
+
+- `DATABASE_URL` is constructed from the DB variables above.
+
+## Running The Service
+
+Docker Compose:
+
+```powershell
+docker compose up auth
+```
+
+Local development:
+
+```powershell
+$env:DB_HOST = "localhost"
+$env:DB_PORT = "5432"
+$env:POSTGRES_DB = "auth_db"
+$env:POSTGRES_USER = "ml_user"
+$env:POSTGRES_PASSWORD = "change_me_in_local_dev"
+$env:PORT = "8003"
+uv run python -m auth.main
+```
+
+## Startup Script Notes
+
+The container entrypoint `auth/start.sh` waits for Postgres, runs Alembic migrations, then starts the service:
+
+```text
+uv run alembic -c auth/alembic.ini upgrade head
+uv run python -m auth.main
+```
