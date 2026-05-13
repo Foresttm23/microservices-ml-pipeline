@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>ML Microservices Platform</title>
+    <link href="/static/styles.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        window.CONFIG = {
+            GATEWAY_URL: "{{ gateway_url }}",
+            GATEWAY_WS_URL: "{{ gateway_ws_url }}"
+        };
+    </script>
+</head>
+<body>
+<div id="app">
+    <header class="glass-header">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <h1>NeuralFlow</h1>
+        </div>
+        <div class="user-status" id="userStatus">
+            <span class="status-dot" id="statusIndicator"></span>
+            <span id="statusText">Not Authenticated</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="panels">
+            <!-- Auth Panel -->
+            <section class="glass-panel" id="authPanel">
+                <h2>Authentication</h2>
+                <div class="input-group">
+                    <label for="email">Email</label>
+                    <input id="email" placeholder="agent@example.com" type="email">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input id="password" placeholder="••••••••" type="password">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="btnLogin">Login</button>
+                    <button class="btn btn-secondary" id="btnRegister">Register</button>
+                    <button class="btn btn-outline" id="btnRefresh">Refresh</button>
+                    <button class="btn btn-outline" id="btnLogout">Logout</button>
+                    <button class="btn btn-outline" id="btnMe">Me</button>
+                </div>
+            </section>
+
+            <!-- Pipeline Panel -->
+            <section class="glass-panel" id="pipelinePanel">
+                <h2>Pipeline Execution</h2>
+                <div class="input-group">
+                    <label for="pipelineId">Pipeline ID</label>
+                    <input id="pipelineId" placeholder="default" type="text" value="default">
+                </div>
+                <div class="input-group">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt" placeholder="Enter instructions for the pipeline..." rows="3"></textarea>
+                </div>
+
+                <button class="btn btn-primary w-full" id="btnRun">Execute Pipeline</button>
+            </section>
+        </div>
+
+        <!-- Terminal / Results Panel -->
+        <section class="glass-panel terminal-panel">
+            <div class="terminal-header">
+                <div class="tabs">
+                    <button class="tab-btn active" data-target="cleanOutput">Clean Output</button>
+                    <button class="tab-btn" data-target="terminal">Raw Data</button>
+                </div>
+                <div class="terminal-actions">
+                    <button class="btn-icon" id="btnClearTerminal" title="Clear">✖</button>
+                </div>
+            </div>
+            <div class="terminal-body-container">
+                <div class="terminal-body active" id="cleanOutput">
+                    <div class="empty-state">Waiting for results...</div>
+                </div>
+                <div class="terminal-body" id="terminal">
+                    <div class="terminal-line"><span class="prompt">></span> Ready...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

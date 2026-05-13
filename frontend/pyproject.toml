@@ -1,0 +1,31 @@
+[project]
+name = "frontend"
+version = "0.1.0"
+description = "Modern Frontend service"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+    "pydantic-settings>=2.7.1",
+    "jinja2>=3.1.5",
+    "shared",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[tool.setuptools]
+packages = ["frontend"]
+package-dir = { "frontend" = "." }
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+include = ["."]
+exclude = [
+    "**/__pycache__/**",
+    "**/.venv/**",
+]
+reportMissingImports = false
+reportMissingTypeStubs = false
