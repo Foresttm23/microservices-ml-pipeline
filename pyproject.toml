@@ -13,6 +13,7 @@ dev = [
 
 [tool.uv.workspace]
 members = [
+    "frontend",
     "gateway",
     "shared",
     "ml_worker",
@@ -29,6 +30,7 @@ typeCheckingMode = "basic" # 'off'| 'basic' | 'strict' - 'basic' is a good middl
 
 # Include the package source folders in the workspace so pyright resolves imports
 include = [
+    "frontend",
     "gateway",
     "shared",
     "ml_worker",

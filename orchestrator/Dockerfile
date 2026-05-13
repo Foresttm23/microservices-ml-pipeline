@@ -13,6 +13,7 @@ COPY ml_worker/pyproject.toml ./ml_worker/pyproject.toml
 COPY orchestrator/pyproject.toml ./orchestrator/pyproject.toml
 COPY auth/pyproject.toml ./auth/pyproject.toml
 COPY shared/pyproject.toml ./shared/pyproject.toml
+COPY frontend/pyproject.toml ./frontend/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --all-packages --no-install-project --no-dev
 

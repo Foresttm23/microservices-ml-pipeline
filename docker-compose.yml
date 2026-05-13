@@ -64,6 +64,21 @@ services:
     ports:
       - "8080:8000"  # Host 8080 -> Container 8000
 
+  frontend:
+    env_file:
+      - path: .env
+        required: false
+      - path: frontend/.env
+        required: false
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      gateway:
+        condition: service_started
+    ports:
+      - "8084:8004"  # Host 8084 -> Container 8004
+
   orchestrator:
     env_file:
       - path: .env
