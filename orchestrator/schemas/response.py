@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import Field
 
@@ -8,20 +8,15 @@ from orchestrator.exceptions.domain_errors import (
     EmptyResponseContent,
     NegativeTokenCount,
 )
-from shared.schemas import BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema
 
 
-class ResponseEntity(BaseSchema):
+class ResponseEntity(BaseDomainEntity):
     """Rich domain entity for Response with business logic."""
 
-    id: UUID = Field(default_factory=uuid4)
     query_id: UUID
     content: str
     tokens_used: Optional[int] = None
-
-    # Optional metadata from mixins
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     @classmethod
     def create(
@@ -79,7 +74,6 @@ class ResponseCreate(ResponseBase):
 class ResponseResponse(ResponseBase):
     """Schema for response records."""
 
-    id: UUID = Field(..., description="Response ID")
     query_id: UUID = Field(..., description="Reference to the query")
     created_at: datetime = Field(..., description="When the response was created")
     updated_at: datetime = Field(..., description="When the response was last updated")

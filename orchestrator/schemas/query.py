@@ -8,20 +8,15 @@ from orchestrator.exceptions.domain_errors import InvalidQueryStateTransition
 from orchestrator.schemas.log import LogResponse
 from orchestrator.schemas.response import ResponseResponse
 from shared.core import QueryState
-from shared.schemas import BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema
 
 
-class QueryEntity(BaseSchema):
-    id: UUID = Field(default_factory=uuid4)
+class QueryEntity(BaseDomainEntity):
     user_id: str
     correlation_id: UUID
     interaction_id: UUID = Field(default_factory=uuid4)
     message: str
     state: QueryState = QueryState.PENDING
-
-    # Optional metadata from mixins
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     @classmethod
     def create(cls, user_id: str, correlation_id: UUID, message: str) -> "QueryEntity":

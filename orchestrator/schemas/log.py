@@ -1,23 +1,19 @@
 from datetime import datetime
 from typing import Any, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import Field
 
 from orchestrator.exceptions.domain_errors import EmptyLogMessage, EmptyMetadataKey
-from shared.schemas import BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema
 
 
-class LogEntity(BaseSchema):
+class LogEntity(BaseDomainEntity):
     """Rich domain entity for Log with business logic."""
 
-    id: UUID = Field(default_factory=uuid4)
     query_id: UUID
     message: str
     metadata_: dict[str, Any] = Field(default_factory=dict, alias="metadata_")
-
-    # Optional metadata from mixins
-    created_at: Optional[datetime] = None
 
     @classmethod
     def create(
