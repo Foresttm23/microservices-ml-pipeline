@@ -8,10 +8,10 @@ from orchestrator.exceptions.domain_errors import InvalidQueryStateTransition
 from orchestrator.schemas.log import LogResponse
 from orchestrator.schemas.response import ResponseResponse
 from shared.core import QueryState
-from shared.schemas import BaseDomainEntity, BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin, UpdatedAtMixin
 
 
-class QueryEntity(BaseDomainEntity):
+class QueryEntity(BaseDomainEntity, CreatedAtMixin, UpdatedAtMixin):
     user_id: str
     correlation_id: UUID
     interaction_id: UUID = Field(default_factory=uuid4)

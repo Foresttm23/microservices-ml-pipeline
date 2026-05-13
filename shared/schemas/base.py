@@ -10,5 +10,11 @@ class BaseSchema(BaseModel):
 
 class BaseDomainEntity(BaseSchema):
     id: UUID = Field(default_factory=uuid4)
+
+
+class CreatedAtMixin(BaseSchema):
     created_at: datetime | None = None
+
+
+class UpdatedAtMixin(BaseSchema):
     updated_at: datetime | None = None

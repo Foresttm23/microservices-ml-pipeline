@@ -5,10 +5,10 @@ from uuid import UUID
 from pydantic import Field
 
 from orchestrator.exceptions.domain_errors import EmptyLogMessage, EmptyMetadataKey
-from shared.schemas import BaseDomainEntity, BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin
 
 
-class LogEntity(BaseDomainEntity):
+class LogEntity(BaseDomainEntity, CreatedAtMixin):
     """Rich domain entity for Log with business logic."""
 
     query_id: UUID

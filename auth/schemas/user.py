@@ -3,10 +3,10 @@ from uuid import UUID
 
 from pwdlib import PasswordHash
 
-from shared.schemas import BaseDomainEntity, BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin, UpdatedAtMixin
 
 
-class UserEntity(BaseDomainEntity):
+class UserEntity(BaseDomainEntity, CreatedAtMixin, UpdatedAtMixin):
     email: str
     hashed_password: str
 

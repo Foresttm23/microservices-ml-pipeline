@@ -8,10 +8,10 @@ from orchestrator.exceptions.domain_errors import (
     EmptyResponseContent,
     NegativeTokenCount,
 )
-from shared.schemas import BaseDomainEntity, BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin, UpdatedAtMixin
 
 
-class ResponseEntity(BaseDomainEntity):
+class ResponseEntity(BaseDomainEntity, CreatedAtMixin, UpdatedAtMixin):
     """Rich domain entity for Response with business logic."""
 
     query_id: UUID

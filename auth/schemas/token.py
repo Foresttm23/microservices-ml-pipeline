@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin
 
-from shared.schemas import BaseDomainEntity, BaseSchema
 
-
-class RefreshTokenEntity(BaseDomainEntity):
+class RefreshTokenEntity(BaseDomainEntity, CreatedAtMixin):
     user_id: UUID
     jti: UUID
     expires_at: datetime

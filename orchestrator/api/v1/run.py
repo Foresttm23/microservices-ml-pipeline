@@ -36,7 +36,9 @@ async def run_pipeline(
         pipeline_id=pipeline_id,
     )
 
-    logger.info("Pipeline request accepted: pipeline_id={} query_id={}", pipeline_id, query_id)
+    logger.info(
+        "Pipeline request accepted: pipeline_id={} query_id={}", pipeline_id, query_id
+    )
 
     return PipelineResponse(
         status="accepted",
