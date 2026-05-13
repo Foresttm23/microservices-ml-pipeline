@@ -18,6 +18,7 @@ Service-specific documentation:
 - **[Gateway README](./gateway/README.md)** — HTTP proxy & WebSocket bridge
 - **[Orchestrator README](./orchestrator/README.md)** — Task orchestration & state management
 - **[ML Worker README](./ml_worker/README.md)** — Inference engine & task processor
+- **[Auth README](./auth/README.md)** — JWT auth & refresh tokens
 - **[Shared README](./shared/README.md)** — Common utilities & messaging abstractions
 
 ---
@@ -129,6 +130,8 @@ The system is ready when you see all services healthy.
 
 ```powershell
 $env:ORCHESTRATOR_URL = "http://localhost:8001"
+$env:AUTH_URL = "http://localhost:8003"
+$env:REDIS_URL = "redis://localhost:6379/0"
 $env:PORT = "8000"
 uv run python -m gateway.main
 ```
@@ -136,7 +139,14 @@ uv run python -m gateway.main
 **Terminal 2: Orchestrator**
 
 ```powershell
-$env:DATABASE_URL = "postgresql+asyncpg://ml_user:password@localhost:5432/ml_db"
+$env:DB_HOST = "localhost"
+$env:DB_PORT = "5432"
+$env:POSTGRES_DB = "orchestrator_db"
+$env:POSTGRES_USER = "ml_user"
+$env:POSTGRES_PASSWORD = "change_me_in_local_dev"
+$env:REDIS_HOST = "localhost"
+$env:REDIS_PORT = "6379"
+$env:REDIS_URL = "redis://localhost:6379/0"
 $env:PORT = "8001"
 uv run python -m orchestrator.main
 ```
@@ -146,10 +156,23 @@ uv run python -m orchestrator.main
 ```powershell
 $env:GEMINI_API_KEY = "your-api-key"
 $env:ML_WORKER_DRY_RUN = "false"
+$env:REDIS_URL = "redis://localhost:6379/0"
 uv run python -m ml_worker.main
 ```
 
-**Terminal 4: Test**
+**Terminal 4: Auth**
+
+```powershell
+$env:DB_HOST = "localhost"
+$env:DB_PORT = "5432"
+$env:POSTGRES_DB = "auth_db"
+$env:POSTGRES_USER = "ml_user"
+$env:POSTGRES_PASSWORD = "change_me_in_local_dev"
+$env:PORT = "8003"
+uv run python -m auth.main
+```
+
+**Terminal 5: Test**
 
 ```powershell
 curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
@@ -304,8 +327,8 @@ curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
 const ws = new WebSocket('ws://localhost:8080/ws/results/user_123');
 ws.onopen = () => console.log('Connected to results stream');
 ws.onmessage = (event) => {
-  const result = JSON.parse(event.data);
-  console.log('Result received:', result);
+    const result = JSON.parse(event.data);
+    console.log('Result received:', result);
 };
 ws.onerror = (error) => console.error('WebSocket error:', error);
 ```
@@ -421,10 +444,10 @@ Coursework-ML-Microservices/
 ```bash
 REDIS_HOST=redis
 REDIS_PORT=6379
-DB_HOST=postgres
-POSTGRES_USER=ml_user
-POSTGRES_PASSWORD=secure_password
-POSTGRES_DB=ml_db
+REDIS_DB=0
+REDIS_PASSWORD=
+REDIS_DECODE_RESPONSES=False
+DEBUG=True
 ```
 
 ### `gateway/.env`
@@ -432,22 +455,69 @@ POSTGRES_DB=ml_db
 ```bash
 PORT=8000
 ORCHESTRATOR_URL=http://orchestrator:8001
+AUTH_URL=http://auth:8003
 HTTPX_TIMEOUT_SECONDS=60
+HTTPX_MAX_CONNECTIONS=100
+HTTPX_MAX_KEEPALIVE_CONNECTIONS=20
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379/0
+JWT_ENABLED=true
+JWT_SECRET_KEY=change_me
+JWT_ALGORITHM=HS256
+JWT_ISSUER=
+JWT_AUDIENCE=
+JWT_USER_ID_CLAIM=sub
+JWT_LEEWAY_SECONDS=0
+JWT_PUBLIC_PATHS=["/","/health","/docs","/openapi.json","/auth/register","/auth/login","/auth/refresh","/auth/logout"]
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
 ### `orchestrator/.env`
 
 ```bash
 PORT=8001
-DATABASE_URL=postgresql+asyncpg://ml_user:password@localhost:5432/ml_db
+DB_HOST=orchestrator-db
+DB_PORT=5432
+POSTGRES_DB=orchestrator_db
+POSTGRES_USER=ml_user
+POSTGRES_PASSWORD=change_me_in_local_dev
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379/0
 ```
 
 ### `ml_worker/.env`
 
 ```bash
-PORT=8000
 GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1
+GEMINI_TIMEOUT_SECONDS=30
 ML_WORKER_DRY_RUN=false
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379/0
+```
+
+### `auth/.env`
+
+```bash
+PORT=8003
+DB_HOST=auth-db
+DB_PORT=5432
+POSTGRES_DB=auth_db
+POSTGRES_USER=ml_user
+POSTGRES_PASSWORD=change_me_in_local_dev
+JWT_ENABLED=true
+JWT_SECRET_KEY=change_me
+JWT_ALGORITHM=HS256
+JWT_ISSUER=
+JWT_AUDIENCE=
+JWT_USER_ID_CLAIM=sub
+JWT_LEEWAY_SECONDS=0
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=14
 ```
 
 ---
