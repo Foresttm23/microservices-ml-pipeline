@@ -49,7 +49,7 @@ class AuthService(BaseService[UserEntity, UserRepository]):
 
         hashed_password = password_hash.hash(password)
         user = UserEntity.create(email=email, hashed_password=hashed_password)
-        created = await self.user_repo.create(user)
+        created = await self.user_repo.save(user)
         await self.session.commit()
         logger.info("User registration complete")
         return created
@@ -58,7 +58,7 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         user = await self.user_repo.get_by_email(email)
         if not user:
             raise InvalidCredentials()
-        if not password_hash.verify(password, user.hashed_password):
+        if not user.verify_password(password, password_hash):
             raise InvalidCredentials()
         logger.info("User authentication successful")
         return user
@@ -70,7 +70,7 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         refresh_entity = RefreshTokenEntity.create(
             user_id=user_id, jti=refresh_jti, expires_at=refresh_exp
         )
-        await self.token_repo.create(refresh_entity)
+        await self.token_repo.save(refresh_entity)
         await self.session.commit()
         logger.info("Token pair issued")
 
@@ -91,10 +91,13 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         token_entity = await self.token_repo.get_by_jti(jti)
         if not token_entity:
             raise RefreshTokenNotFound()
-        if token_entity.revoked_at is not None:
+        if token_entity.is_revoked():
             raise RefreshTokenRevoked()
-        if token_entity.expires_at <= datetime.now(timezone.utc):
-            await self.token_repo.revoke(jti)
+
+        now = datetime.now(timezone.utc)
+        if token_entity.is_expired(now):
+            token_entity.mark_revoked(now=now)
+            await self.token_repo.save(token_entity)
             await self.session.commit()
             raise RefreshTokenExpired()
 
@@ -104,8 +107,9 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         new_entity = RefreshTokenEntity.create(
             user_id=user_id, jti=new_jti, expires_at=new_exp
         )
-        await self.token_repo.create(new_entity)
-        await self.token_repo.revoke(jti, replaced_by=new_jti)
+        await self.token_repo.save(new_entity)
+        token_entity.mark_revoked(replaced_by=new_jti, now=now)
+        await self.token_repo.save(token_entity)
         await self.session.commit()
         logger.info("Refresh token rotated")
 
@@ -121,9 +125,31 @@ class AuthService(BaseService[UserEntity, UserRepository]):
             raise InvalidRefreshToken()
 
         jti = self._require_uuid_claim(payload, "jti")
+
+        # Let the repo handle the traversal logic
         await self.token_repo.revoke_lineage(jti)
         await self.session.commit()
-        logger.info("Logout complete")
+        logger.info("Logout complete and lineage revoked")
+
+    async def create(self, entity: UserEntity) -> UserEntity:
+        created = await self.user_repo.save(entity)
+        await self.session.commit()
+        return created
+
+    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
+        existing = await self.user_repo.get_by_id(entity_id)
+        if not existing:
+            return None
+        updated = entity.model_copy(update={"id": entity_id})
+        saved = await self.user_repo.save(updated)
+        await self.session.commit()
+        return saved
+
+    async def delete(self, entity_id: UUID) -> bool:
+        deleted = await self.user_repo.delete(entity_id)
+        if deleted:
+            await self.session.commit()
+        return deleted
 
     async def get_user_profile(self, user_id: UUID) -> UserEntity | None:
         return await self.user_repo.get_by_id(user_id)
@@ -199,20 +225,3 @@ class AuthService(BaseService[UserEntity, UserRepository]):
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[UserEntity]:
         return await self.user_repo.get_all(skip=skip, limit=limit)
-
-    async def create(self, entity: UserEntity) -> UserEntity:
-        created = await self.user_repo.create(entity)
-        await self.session.commit()
-        return created
-
-    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
-        updated = await self.user_repo.update(entity_id, entity)
-        if updated:
-            await self.session.commit()
-        return updated
-
-    async def delete(self, entity_id: UUID) -> bool:
-        deleted = await self.user_repo.delete(entity_id)
-        if deleted:
-            await self.session.commit()
-        return deleted

@@ -12,7 +12,9 @@ class UserRepository(BaseRepository[UserModel, UserEntity]):
     """Repository for User entities."""
 
     def __init__(self, session: AsyncSession):
-        super().__init__(session=session, model_class=UserModel, entity_class=UserEntity)
+        super().__init__(
+            session=session, model_class=UserModel, entity_class=UserEntity
+        )
 
     async def get_by_email(self, email: str) -> UserEntity | None:
         stmt = select(UserModel).where(UserModel.email == email)

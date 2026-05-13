@@ -14,7 +14,9 @@ class RefreshTokenRepository(BaseRepository[RefreshTokenModel, RefreshTokenEntit
 
     def __init__(self, session: AsyncSession):
         super().__init__(
-            session=session, model_class=RefreshTokenModel, entity_class=RefreshTokenEntity
+            session=session,
+            model_class=RefreshTokenModel,
+            entity_class=RefreshTokenEntity,
         )
 
     async def get_by_jti(self, jti: UUID) -> RefreshTokenEntity | None:
@@ -82,4 +84,3 @@ class RefreshTokenRepository(BaseRepository[RefreshTokenModel, RefreshTokenEntit
                 model.revoked_at = now
             current_jti = model.replaced_by
         await self.session.flush()
-

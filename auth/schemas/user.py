@@ -1,21 +1,21 @@
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from pydantic import Field
+from pwdlib import PasswordHash
 
-from shared.schemas import BaseSchema
+from shared.schemas import BaseDomainEntity, BaseSchema
 
 
-class UserEntity(BaseSchema):
-    id: UUID = Field(default_factory=uuid4)
+class UserEntity(BaseDomainEntity):
     email: str
     hashed_password: str
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
 
     @classmethod
     def create(cls, email: str, hashed_password: str) -> "UserEntity":
         return cls(email=email, hashed_password=hashed_password)
+
+    def verify_password(self, password: str, verifier: PasswordHash) -> bool:
+        return verifier.verify(password, self.hashed_password)
 
 
 class UserRegisterRequest(BaseSchema):
