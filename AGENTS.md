@@ -13,6 +13,7 @@
     - `gateway`: auth/rate-limit edge + Redis Pub/Sub WebSocket bridge.
     - `orchestrator`: owns DB state, emits tasks, consumes results and updates state.
     - `ml_worker`: consumes `task_queue`, runs inference, emits `result_queue`.
+    - `auth`: identity service issuing/rotating JWT access + refresh tokens, backing user/token state in Postgres.
 
 - Current implementation (what's implemented in the repo today):
     - `gateway`:
@@ -20,13 +21,18 @@
           the
           orchestrator (see `gateway/api/v1/query.py`). WebSocket results are bridged from Redis Pub/Sub (see
           `gateway/api/v1/websocket.py`).
-        - Request context middleware and an HTTPX client manager are implemented (`shared/core/logging/middleware.py`,
-          `gateway/core/httpx_client.py`) and wired in `gateway/main.py`.
-        - The live gateway path today includes HTTP proxying plus Redis/WebSocket bridging.
-        - Notes / recent specifics:
-            - HTTPX lifecycle helpers are exposed from `gateway/core/httpx_client.py` as `init_httpx` and `close_httpx`
-              and are wired in `gateway/main.py` lifespan.
-            - Request context helpers live in `gateway/utils/context_helpers.py` (use these from handlers).
+        - Request context middleware and an HTTPX client manager are implemented (`shared/middlewares/logging.py`,
+          `gateway/infra/httpx_client.py`) and wired in `gateway/main.py`.
+            - The live gateway path today includes HTTP proxying plus Redis/WebSocket bridging.
+            - Notes / recent specifics:
+                - HTTPX lifecycle helpers are exposed from `gateway/infra/httpx_client.py` as `init_httpx` and
+                  `close_httpx`
+                  and are wired in `gateway/main.py` lifespan.
+                - Request context helpers live in `gateway/utils/context_helpers.py` (use these from handlers).
+    - `auth`:
+        - Auth service implements JWT access + refresh flow, refresh token rotation, and protected `/auth/me` endpoint.
+        - Backed by a dedicated Postgres instance (`auth-db`) and migrations are run from `auth/start.sh` (see
+          `auth/README.md` for endpoints and environment variables).
     - `orchestrator`:
         - ✅ **COMPLETE:** Full DDD layering implemented with API endpoints, services, repositories, and domain models.
         - ✅ **COMPLETE:** HTTP API surface fully operational - accepts POST requests, creates PENDING tasks in
@@ -60,20 +66,67 @@
   In short: the repository contains a fully operational end-to-end task submission pipeline, including result
   consumption and Redis/WebSocket bridging. Remaining work focuses on error handling, observability, and configuration.
 
+## Implementation Status (May 2026)
+
+- **Current State:** ✅ End-to-end task submission pipeline is fully operational and deployable via Docker Compose.
+
+### Completed Components
+
+- ✅ Gateway: HTTP proxying with request context middleware and WebSocket bridging (see `gateway/api/v1`).
+- ✅ Orchestrator: Full DDD implementation with API endpoints, services, repositories, and migrations (`orchestrator/`).
+- ✅ ML Worker: Async inference worker consuming `task_queue` and publishing to `result_queue` (`ml_worker/main.py`).
+- ✅ Messaging: Redis queues (`task_queue`, `result_queue`) and Pub/Sub channels (`results:{user_id}`) are integrated via
+  `shared/messaging`.
+- ✅ Database: PostgreSQL instances with Alembic migrations for services that need them (`orchestrator/alembic.ini`,
+  `auth/alembic.ini`).
+
+### Next Priority Items (short list from ARCH_GUIDE)
+
+1. Result consumer: ensure a robust background consumer consumes `result_queue` and updates query state to COMPLETED.
+2. WebSocket bridge: ensure gateway subscribes to `results:{user_id}` and forwards to clients reliably (see
+   `gateway/api/v1/websocket.py`).
+3. Error handling & resilience: FAILED task state, retries with backoff, and a dead-letter queue for permanent failures.
+4. Monitoring & health: add health endpoints and basic metrics (queue depth, processing latency, error rates).
+
+## System Overview (short)
+
+- Data flow (high level): Client POST -> Gateway -> Orchestrator -> Redis `task_queue` -> ML Worker -> Redis
+  `result_queue` ->
+  Orchestrator result listener -> Redis PUB `results:{user_id}` -> Gateway WebSocket -> Client.
+- File pointers/examples:
+    - Gateway proxying: `gateway/api/v1/query.py` forwards to orchestrator endpoint `/api/run/{pipeline_id}`.
+    - Task enqueue / Redis queues: see `shared/messaging/__init__.py`, `shared/messaging/queue.py`.
+    - ML provider adapter: `ml_worker/infra/gemini_adapter.py` (configurable provider logic lives under
+      `ml_worker/infra`).
+    - Result processing: `orchestrator/services/result_processor.py` and the consumer wired in `orchestrator/main.py`.
+
+## Coding Standards (DDD enforcement highlights)
+
+- Use absolute imports across the repo; keep `__init__.py` files minimal.
+- Repository layer MUST return domain entities (not SQLAlchemy models) and MUST NOT call `session.commit()`; the
+  service layer manages transactions (Unit of Work).
+- Service layer: orchestrates cross-boundary operations (DB + queues) and returns Pydantic schemas to the API layer.
+- Prefer explicit repository methods (e.g., `get_detailed_report`) over generic filters to avoid N+1 queries.
+- Prefer rich domain entities (encapsulating behavior, invariants and small domain methods) rather than anemic
+  data-only objects; implement business logic on entities under `schemas` when it belongs to the
+  domain model instead of pushing all behavior into the service layer.
+
 ## Runtime Boundaries and Integration Points
 
 - The container topology and runtime wiring are defined in `docker-compose.yml`:
     - `redis` and `postgres` services are declared and exported (`6379`, `5432`).
     - `gateway` is exposed on host port `8080` -> container `8000`.
-    - `orchestrator` is exposed on host port `8081` -> container `8000`.
-    - `ml_worker` is exposed on host port `8082` -> container `8000`.
+    - `orchestrator` is exposed on host port `8081` -> container `8001` (container runs on 8001).
+    - `ml_worker` is exposed on host port `8082` -> container `8002` (container runs on 8002).
+    - `auth` is exposed on host port `8083` -> container `8003`.
 
 - Start scripts and dependency waits:
-    - `orchestrator/start.sh` actively waits for the database (`$DB_HOST:5432`) and runs
-      `uv run alembic -c orchestrator/alembic.ini upgrade head` before launching.
-    - `ml_worker/start.sh` actively waits for the message broker (`$REDIS_HOST:6379`) prior to starting.
-    - `gateway/start.sh` does not wait in its script, but `docker-compose.yml` configures a `depends_on` condition for
-      `redis` (service health) which ensures Redis is available when started via Docker Compose.
+    - `orchestrator/start.sh` actively waits for the database (`$DB_HOST:$DB_PORT`) and also waits for Redis
+      (`$REDIS_HOST:$REDIS_PORT`) before running `uv run alembic -c orchestrator/alembic.ini upgrade head` and
+      launching the service.
+    - `ml_worker/start.sh` actively waits for the message broker (`$REDIS_HOST:$REDIS_PORT`) prior to starting.
+    - `gateway/start.sh` now waits for Redis in the script (so it will block locally until Redis is reachable) in
+      addition to the `depends_on` health-check wiring in Docker Compose.
 
 - Implication: when running with Docker Compose the compose wiring already covers most broker/DB availability checks;
   when running services locally (not in compose) you must ensure `REDIS_HOST`, `DB_HOST` and the backing services are
@@ -87,13 +140,14 @@
 - Root workspace dependency management uses the top-level `pyproject.toml` plus `uv.lock` and the Dockerfiles call
   `uv sync --frozen` in builder stages—preserve that flow.
 - Root workspace members are declared in `pyproject.toml` and should not be arbitrarily changed: `gateway`, `ml_worker`,
-  `orchestrator`, `shared`.
+  `orchestrator`, `shared`, `auth`.
 
 - Service lifecycle patterns to follow:
     - The gateway uses `init_httpx(...)` and `close_httpx()` inside the FastAPI lifespan (see `gateway/main.py`) —
-      new agents should prefer these helpers rather than constructing ad-hoc HTTPX clients.
+      new agents should prefer these helpers rather than constructing ad-hoc HTTPX clients. The helpers live in
+      `gateway/infra/httpx_client.py` and expose `init_httpx` / `close_httpx`.
     - Request context helpers live in `gateway/utils/context_helpers.py` (use these from handlers; middleware is from
-      `shared/core/logging/middleware.py`).
+      `shared/middlewares/logging.py`).
 
 ## Orchestrator Design Rules (from ARCH_GUIDE) — current status
 
@@ -125,11 +179,14 @@
 
   # ML Worker (worker runs as an asyncio process)
   uv run python -m ml_worker.main
+
+  # Auth service
+  uv run python -m auth.main
   ```
 
 - When using Docker Compose be mindful that:
     - The compose file defines `depends_on` with health checks: `gateway` depends on `redis`, `orchestrator` depends on
-      `postgres` and `redis`, and `ml_worker` depends on `redis`.
+      `postgres` and `redis`, `auth` depends on `auth-db`, and `ml_worker` depends on `redis`.
     - Orchestrator startup runs migrations; if migrations fail, orchestrator will not complete startup.
 
 - If startup hangs locally, check environment and external services first:
@@ -145,7 +202,8 @@
 - ✅ ML worker task consumption and result publishing to `result_queue` are working end-to-end.
 - ✅ Orchestrator result consumer updates DB state and publishes to Redis channels.
 - ✅ Gateway WebSocket pub/sub bridge streams results from Redis to clients.
-- ✅ All services (gateway, orchestrator, ml_worker) running in Docker Compose with proper health checks and dependency
+- ✅ All services (gateway, orchestrator, ml_worker, auth) running in Docker Compose with proper health checks and
+  dependency
   ordering.
 
 ### 🔮 Next Steps (Priority Order)
