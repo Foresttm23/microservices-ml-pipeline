@@ -1,4 +1,4 @@
-# 🔗 Shared Library
+🔗 Shared Library
 
 Common utilities, message schemas, and abstractions used by **Gateway**, **Orchestrator**, and **ML Worker** services.
 
@@ -266,6 +266,7 @@ class SharedSettings(BaseSettings):
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
+    REDIS_PASSWORD: str | None = None
 
     class Config:
         env_file = ".env"
