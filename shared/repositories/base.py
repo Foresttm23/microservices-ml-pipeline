@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel as PydanticEntity
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase as OrmModel
 
+from shared.schemas.base import BaseDomainEntity
 
-class BaseRepository[TModel: OrmModel, TEntity: PydanticEntity](ABC):
+
+class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
     """
     Abstract Base Repository using the Data Mapper pattern.
 
@@ -64,9 +65,10 @@ class BaseRepository[TModel: OrmModel, TEntity: PydanticEntity](ABC):
         Used for 'Update' operations to patch an existing attached model.
         Excludes unset fields to support partial updates and prevents ID mutation.
         """
-        data = entity.model_dump(exclude_unset=True, exclude={"id"})
+        data = entity.model_dump(exclude_unset=True, exclude={"id", "created_at"})
         for key, value in data.items():
-            setattr(model, key, value)
+            if hasattr(model, key):
+                setattr(model, key, value)
         return model
 
     @abstractmethod
@@ -104,6 +106,25 @@ class BaseRepository[TModel: OrmModel, TEntity: PydanticEntity](ABC):
             The updated domain entity or None if the record does not exist.
         """
         pass
+
+    async def save(self, entity: TEntity) -> TEntity:
+        """
+        Save a domain entity, performing an upsert operation.
+
+        If the entity exists (based on the ID), it updates the existing record.
+        Otherwise, it creates a new record.
+
+        Returns:
+            The persisted domain entity.
+        """
+        model = await self.session.get(self.model_class, entity.id)
+        if model:
+            self.update_model_from_entity(model, entity)
+        else:
+            model = self.map_entity_to_model(entity)
+            self.session.add(model)
+        await self.session.flush()
+        return self.map_model_to_entity(model)
 
     @abstractmethod
     async def delete(self, entity_id: Any) -> bool:
