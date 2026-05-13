@@ -1,11 +1,10 @@
+import httpx
 from fastapi import APIRouter, Request
 from loguru import logger
 
-import httpx
-
 from gateway.core.config import get_settings
 from gateway.dependencies.httpx import HTTPXClientDep
-from gateway.exceptions import OrchestratorProxyFailed
+from gateway.exceptions.gateway_errors import OrchestratorProxyFailed
 from shared.schemas import PipelineRequest
 from shared.utils import forward_to_service
 

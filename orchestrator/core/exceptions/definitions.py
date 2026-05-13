@@ -1,6 +1,4 @@
-from shared.core.exceptions import ErrorDefinition
-
-from orchestrator.exceptions import (
+from orchestrator.exceptions.domain_errors import (
     EmptyLogMessage,
     EmptyMetadataKey,
     EmptyResponseContent,
@@ -13,6 +11,7 @@ from orchestrator.exceptions.orchestrator_errors import (
     ResultPublishFailed,
     TaskEnqueueFailed,
 )
+from shared.core.exceptions import ErrorDefinition
 
 ORCHESTRATOR_ERROR_MAP = {
     TaskEnqueueFailed: ErrorDefinition(
