@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
 from pydantic import Field
@@ -56,6 +56,10 @@ class QueryEntity(BaseDomainEntity, CreatedAtMixin, UpdatedAtMixin):
         self.transition_to(QueryState.FAILED)
 
 
+class QueryDetailEntity(QueryEntity):
+    responses: list[Any] = Field(default_factory=list)
+
+
 class QueryBase(BaseSchema):
     """Base schema for queries."""
 
@@ -107,6 +111,7 @@ class QueryListResponse(BaseSchema):
     id: UUID = Field(..., description="Query ID")
     correlation_id: UUID = Field(..., description="Unique correlation ID")
     interaction_id: UUID = Field(..., description="Interaction session ID")
+    message: str = Field(..., description="Query message content")
     state: QueryState = Field(..., description="Current state of the query")
     created_at: datetime = Field(..., description="When the query was created")
 

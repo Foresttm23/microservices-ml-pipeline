@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from orchestrator.api.v1 import run
+from orchestrator.api.v1 import run, chats
 from orchestrator.core.config import get_settings
 from orchestrator.core.exceptions.definitions import ORCHESTRATOR_ERROR_MAP
 from orchestrator.services.result_processor import ResultProcessor
@@ -70,6 +70,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(run.router)
+app.include_router(chats.router)
 
 
 def main() -> None:

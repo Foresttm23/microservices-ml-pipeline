@@ -27,6 +27,10 @@ class OrchestratorSettings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
+    # Pagination
+    DEFAULT_PAGINATION_LIMIT: int = 20
+    MAX_PAGINATION_LIMIT: int = 100
+
     @property
     def DATABASE_URL(self) -> str:
         """Construct the PostgreSQL connection URL."""

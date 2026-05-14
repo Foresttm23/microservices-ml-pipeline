@@ -1,6 +1,8 @@
 from typing import Any
 from uuid import UUID
 
+from orchestrator.core.config import get_settings
+
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +11,7 @@ from orchestrator.repositories.log_repository import LogRepository
 from orchestrator.repositories.query_repository import QueryRepository
 from orchestrator.repositories.response_repository import ResponseRepository
 from orchestrator.schemas.log import LogEntity
-from orchestrator.schemas.query import QueryEntity
+from orchestrator.schemas.query import QueryEntity, QueryDetailEntity
 from orchestrator.schemas.response import ResponseEntity
 from shared.core import QueryState
 from shared.messaging import (
@@ -32,6 +34,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
     ):
         self.response_repo = response_repo or ResponseRepository(session)
         self.log_repo = log_repo or LogRepository(session)
+        self._settings = get_settings()
         super().__init__(session, repo)
 
     async def create_and_enqueue_task(
@@ -142,6 +145,16 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
         # Persist the updated query entity state back to the database
         await self.repo.save(query)
         logger.info("Result handled: query_id={} state={}", query.id, query.state)
+
+    async def get_user_chats(self, user_id: str, skip: int = 0, limit: int | None = None) -> tuple[list[QueryEntity], int]:
+        limit = limit or self._settings.DEFAULT_PAGINATION_LIMIT
+        limit = min(limit, self._settings.MAX_PAGINATION_LIMIT)
+        return await self.repo.get_chats_paginated(user_id, skip, limit)
+
+    async def get_chat_messages(self, user_id: str, interaction_id: UUID, skip: int = 0, limit: int | None = None) -> tuple[list[QueryDetailEntity], int]:
+        limit = limit or self._settings.DEFAULT_PAGINATION_LIMIT
+        limit = min(limit, self._settings.MAX_PAGINATION_LIMIT)
+        return await self.repo.get_chat_messages_paginated(user_id, interaction_id, skip, limit)
 
     async def get_by_id(self, entity_id: Any) -> QueryEntity | None:
         raise NotImplementedError("QueryService.get_by_id not implemented.")
