@@ -1,3 +1,3 @@
-from shared.utils.forwarder_helper import forward_to_service
+from shared.utils.proxy_helper import proxy_request
 
-__all__ = ["forward_to_service"]
+__all__ = ["proxy_request"]
