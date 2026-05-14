@@ -38,8 +38,8 @@ These are read by `gateway/core/config.py`. Defaults below reflect `gateway/.env
 
 Service URLs:
 
-- `ORCHESTRATOR_URL` (default: http://orchestrator:8001)
-- `AUTH_URL` (default: http://auth:8003)
+- `ORCHESTRATOR_URL` (default: http://orchestrator:8003)
+- `AUTH_URL` (default: http://auth:8002)
 
 HTTPX client:
 
@@ -66,7 +66,7 @@ JWT middleware:
 
 Server:
 
-- `PORT` (default: 8000)
+- `PORT` (default: 8001)
 
 ## Running The Service
 
@@ -79,10 +79,10 @@ docker compose up gateway
 Local development:
 
 ```powershell
-$env:ORCHESTRATOR_URL = "http://localhost:8001"
-$env:AUTH_URL = "http://localhost:8003"
+$env:ORCHESTRATOR_URL = "http://localhost:8003"
+$env:AUTH_URL = "http://localhost:8002"
 $env:REDIS_URL = "redis://localhost:6379/0"
-$env:PORT = "8000"
+$env:PORT = "8001"
 uv run python -m gateway.main
 ```
 

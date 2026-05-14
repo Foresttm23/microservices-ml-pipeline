@@ -48,7 +48,7 @@ These are read by `orchestrator/core/config.py`. Defaults below reflect `orchest
 
 Server:
 
-- `PORT` (default: 8001)
+- `PORT` (default: 8003)
 
 Database:
 
@@ -87,7 +87,7 @@ $env:POSTGRES_PASSWORD = "change_me_in_local_dev"
 $env:REDIS_HOST = "localhost"
 $env:REDIS_PORT = "6379"
 $env:REDIS_URL = "redis://localhost:6379/0"
-$env:PORT = "8001"
+$env:PORT = "8003"
 uv run python -m orchestrator.main
 ```
 

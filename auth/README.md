@@ -38,7 +38,7 @@ These are read by `auth/core/config.py`. Defaults below reflect `auth/.env` (Doc
 
 Server:
 
-- `PORT` (default: 8003)
+- `PORT` (default: 8002)
 
 Database:
 
@@ -81,7 +81,7 @@ $env:DB_PORT = "5432"
 $env:POSTGRES_DB = "auth_db"
 $env:POSTGRES_USER = "ml_user"
 $env:POSTGRES_PASSWORD = "change_me_in_local_dev"
-$env:PORT = "8003"
+$env:PORT = "8002"
 uv run python -m auth.main
 ```
 

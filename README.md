@@ -35,7 +35,7 @@ A **4-service microservices architecture** that processes ML quiz tasks asynchro
                      │
                      ▼
          ┌──────────────────────┐
-         │ GATEWAY (Port 8080)  │
+         │ GATEWAY (Port 8081)  │
          │ - HTTP Proxy         │
          │ - Context Headers    │
          │ - WebSocket Bridge   │
@@ -43,7 +43,7 @@ A **4-service microservices architecture** that processes ML quiz tasks asynchro
                   │ Forward to Orchestrator
                   ▼
          ┌──────────────────────────┐
-         │ ORCHESTRATOR (Port 8081) │
+         │ ORCHESTRATOR (Port 8083) │
          │ - Task Creation (PENDING)│
          │ - DB State Machine       │
          │ - Result Processing      │
@@ -56,7 +56,7 @@ A **4-service microservices architecture** that processes ML quiz tasks asynchro
        │
        ▼
     ┌──────────────────────────┐
-    │  ML WORKER (Port 8082)   │
+    │  ML WORKER (Port 8084)   │
     │  - Task Consumption      │
     │  - Gemini Inference      │
     │  - Result Publishing     │
@@ -117,8 +117,8 @@ docker compose up --build
 # Expected output:
 # - redis        : Ready to accept connections
 # - postgres     : database system is ready
-# - orchestrator : Migrations applied, FastAPI running on 0.0.0.0:8001
-# - gateway      : FastAPI running on 0.0.0.0:8000
+# - orchestrator : Migrations applied, FastAPI running on 0.0.0.0:8003
+# - gateway      : FastAPI running on 0.0.0.0:8001
 # - ml_worker    : Starting queue consumer loop
 ```
 
@@ -129,10 +129,10 @@ The system is ready when you see all services healthy.
 **Terminal 1: Gateway**
 
 ```powershell
-$env:ORCHESTRATOR_URL = "http://localhost:8001"
-$env:AUTH_URL = "http://localhost:8003"
+$env:ORCHESTRATOR_URL = "http://localhost:8003"
+$env:AUTH_URL = "http://localhost:8002"
 $env:REDIS_URL = "redis://localhost:6379/0"
-$env:PORT = "8000"
+$env:PORT = "8001"
 uv run python -m gateway.main
 ```
 
@@ -147,7 +147,7 @@ $env:POSTGRES_PASSWORD = "change_me_in_local_dev"
 $env:REDIS_HOST = "localhost"
 $env:REDIS_PORT = "6379"
 $env:REDIS_URL = "redis://localhost:6379/0"
-$env:PORT = "8001"
+$env:PORT = "8003"
 uv run python -m orchestrator.main
 ```
 
@@ -168,14 +168,14 @@ $env:DB_PORT = "5432"
 $env:POSTGRES_DB = "auth_db"
 $env:POSTGRES_USER = "ml_user"
 $env:POSTGRES_PASSWORD = "change_me_in_local_dev"
-$env:PORT = "8003"
+$env:PORT = "8002"
 uv run python -m auth.main
 ```
 
 **Terminal 5: Test**
 
 ```powershell
-curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
+curl -X POST http://localhost:8081/pipelines/quiz_v1/run `
   -H "Content-Type: application/json" `
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" `
   -H "X-User-ID: user_123" `
@@ -228,21 +228,21 @@ curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
 
 ## 🔌 Key Endpoints
 
-### Gateway (Port 8080)
+### Gateway (Port 8081)
 
 | Method | Endpoint                       | Purpose                               |
 |--------|--------------------------------|---------------------------------------|
 | POST   | `/pipelines/{pipeline_id}/run` | Submit task (proxied to orchestrator) |
 | GET    | `/ws/results/{user_id}`        | WebSocket subscription for results    |
 
-### Orchestrator (Port 8001)
+### Orchestrator (Port 8003)
 
 | Method | Endpoint                 | Purpose                |
 |--------|--------------------------|------------------------|
 | POST   | `/api/run/{pipeline_id}` | Task creation endpoint |
 | GET    | `/`                      | Health check           |
 
-### ML Worker (Port 8082)
+### ML Worker (Port 8084)
 
 | Method | Endpoint     | Purpose                                |
 |--------|--------------|----------------------------------------|
@@ -313,7 +313,7 @@ curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
 ### 1. Submit a Task
 
 ```powershell
-curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
+curl -X POST http://localhost:8081/pipelines/quiz_v1/run `
   -H "Content-Type: application/json" `
   -H "X-Correlation-ID: $(New-Guid)" `
   -H "X-User-ID: user_123" `
@@ -324,7 +324,7 @@ curl -X POST http://localhost:8080/pipelines/quiz_v1/run `
 
 ```javascript
 // In browser console
-const ws = new WebSocket('ws://localhost:8080/ws/results/user_123');
+const ws = new WebSocket('ws://localhost:8081/ws/results/user_123');
 ws.onopen = () => console.log('Connected to results stream');
 ws.onmessage = (event) => {
     const result = JSON.parse(event.data);
@@ -453,9 +453,9 @@ DEBUG=True
 ### `gateway/.env`
 
 ```bash
-PORT=8000
-ORCHESTRATOR_URL=http://orchestrator:8001
-AUTH_URL=http://auth:8003
+PORT=8001
+ORCHESTRATOR_URL=http://orchestrator:8003
+AUTH_URL=http://auth:8002
 HTTPX_TIMEOUT_SECONDS=60
 HTTPX_MAX_CONNECTIONS=100
 HTTPX_MAX_KEEPALIVE_CONNECTIONS=20
@@ -476,7 +476,7 @@ JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
 ### `orchestrator/.env`
 
 ```bash
-PORT=8001
+PORT=8003
 DB_HOST=orchestrator-db
 DB_PORT=5432
 POSTGRES_DB=orchestrator_db
@@ -503,7 +503,7 @@ REDIS_URL=redis://redis:6379/0
 ### `auth/.env`
 
 ```bash
-PORT=8003
+PORT=8002
 DB_HOST=auth-db
 DB_PORT=5432
 POSTGRES_DB=auth_db
