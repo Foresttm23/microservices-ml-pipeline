@@ -7,11 +7,14 @@ from gateway.dependencies.httpx import HTTPXClientDep
 from gateway.exceptions.gateway_errors import OrchestratorProxyFailed
 from shared.schemas import PipelineRequest
 from shared.utils import forward_to_service
-
+from gateway.dependencies.rate_limiter import RateLimiterQueryRunDep
 router = APIRouter()
 
 
-@router.post("/pipelines/{pipeline_id}/run")
+@router.post(
+    "/pipelines/{pipeline_id}/run", 
+    dependencies=[RateLimiterQueryRunDep]
+)
 async def proxy_to_orchestrator(
     payload: PipelineRequest, pipeline_id: str, request: Request, client: HTTPXClientDep
 ):

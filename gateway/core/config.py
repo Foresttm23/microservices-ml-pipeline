@@ -41,6 +41,14 @@ class GatewaySettings(BaseSettings):
         "/auth/logout",
     ]
 
+    # Rate Limiting
+    RATE_LIMIT_REQUESTS_PER_MINUTE: int = 100
+    RATE_LIMIT_AUTH_LOGIN: int = 5
+    RATE_LIMIT_AUTH_REGISTER: int = 5
+    RATE_LIMIT_AUTH_REFRESH: int = 5
+    RATE_LIMIT_AUTH_LOGOUT: int = 5
+    RATE_LIMIT_AUTH_ME: int = 5
+    RATE_LIMIT_QUERY_RUN: int = 5
     # Port
     PORT: int = 8000
 
