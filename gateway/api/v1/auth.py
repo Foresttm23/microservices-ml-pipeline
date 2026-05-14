@@ -1,65 +1,84 @@
 import httpx
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request
 from loguru import logger
 
-from gateway.core.config import get_settings
+from auth.schemas.user import UserLoginRequest, UserRegisterRequest
 from gateway.dependencies.httpx import HTTPXClientDep
 from gateway.dependencies.rate_limiter import (
     RateLimiterLoginDep,
-    RateLimiterRegisterDep,
-    RateLimiterRefreshDep,
     RateLimiterLogoutDep,
     RateLimiterMeDep,
+    RateLimiterRefreshDep,
+    RateLimiterRegisterDep,
 )
+from gateway.dependencies.settings import GatewaySettingsDep
 from gateway.exceptions.gateway_errors import AuthProxyFailed
-from shared.utils import forward_to_service
+from shared.utils import proxy_request
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-async def _proxy_auth_request(path: str, request: Request, client: HTTPXClientDep):
-    settings = get_settings()
-    query = request.url.query
-    target_url = f"{settings.AUTH_URL}/auth/{path}"
-    if query:
-        target_url = f"{target_url}?{query}"
+# Default error mapping for Auth Service interactions
+AUTH_ERROR_MAP = {
+    401: AuthProxyFailed,
+    403: AuthProxyFailed,
+}
 
-    logger.info("Proxying auth request: path={}", request.url.path)
-    try:
-        response = await forward_to_service(
-            request,
-            client,
-            target_url,
-            timeout=settings.HTTPX_TIMEOUT_SECONDS,
-        )
-    except httpx.HTTPError as exc:
-        raise AuthProxyFailed("Auth proxy request failed") from exc
-    logger.info(
-        "Auth response: path={} status_code={}",
-        request.url.path,
-        response.status_code,
-    )
-    return response
 
 @router.post("/login", dependencies=[RateLimiterLoginDep])
-async def login(request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request("login", request, client)
+async def login(
+    payload: UserLoginRequest,
+    request: Request,
+    client: HTTPXClientDep,
+    settings: GatewaySettingsDep,
+):
+    logger.info("Login attempt for email={}", payload.email)
+    return await proxy_request(
+        request, client, f"{settings.AUTH_URL}/login", status_error_map=AUTH_ERROR_MAP
+    )
+
 
 @router.post("/register", dependencies=[RateLimiterRegisterDep])
-async def register(request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request("register", request, client)
+async def register(
+    payload: UserRegisterRequest,
+    request: Request,
+    client: HTTPXClientDep,
+    settings: GatewaySettingsDep,
+):
+    logger.info("Register attempt for email={}", payload.email)
+    return await proxy_request(
+        request,
+        client,
+        f"{settings.AUTH_URL}/register",
+        status_error_map=AUTH_ERROR_MAP,
+    )
+
 
 @router.post("/refresh", dependencies=[RateLimiterRefreshDep])
-async def refresh(request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request("refresh", request, client)
+async def refresh(
+    request: Request, client: HTTPXClientDep, settings: GatewaySettingsDep
+):
+    return await proxy_request(request, client, f"{settings.AUTH_URL}/refresh")
+
 
 @router.post("/logout", dependencies=[RateLimiterLogoutDep])
-async def logout(request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request("logout", request, client)
+async def logout(
+    request: Request, client: HTTPXClientDep, settings: GatewaySettingsDep
+):
+    return await proxy_request(request, client, f"{settings.AUTH_URL}/logout")
+
 
 @router.get("/me", dependencies=[RateLimiterMeDep])
-async def me(request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request("me", request, client)
+async def me(request: Request, client: HTTPXClientDep, settings: GatewaySettingsDep):
+    return await proxy_request(
+        request, client, f"{settings.AUTH_URL}/me", status_error_map=AUTH_ERROR_MAP
+    )
 
-@router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_to_auth(path: str, request: Request, client: HTTPXClientDep):
-    return await _proxy_auth_request(path, request, client)
+
+@router.api_route(
+    "/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+)
+async def proxy_to_auth(
+    path: str, request: Request, client: HTTPXClientDep, settings: GatewaySettingsDep
+):
+    """Catch-all for any other auth-related sub-routes."""
+    return await proxy_request(request, client, f"{settings.AUTH_URL}/{path}")
