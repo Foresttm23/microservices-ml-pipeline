@@ -1,3 +1,4 @@
+from shared.schemas.auth import UserLoginRequest, UserRegisterRequest
 from shared.schemas.base import (
     BaseDomainEntity,
     BaseSchema,
@@ -17,4 +18,6 @@ __all__ = [
     "BaseDomainEntity",
     "CreatedAtMixin",
     "UpdatedAtMixin",
+    "UserLoginRequest",
+    "UserRegisterRequest",
 ]

@@ -7,7 +7,8 @@ from auth.schemas.token import (
     RefreshTokenRequest,
     TokenPairResponse,
 )
-from auth.schemas.user import UserLoginRequest, UserRegisterRequest, UserResponse
+from shared.schemas import UserLoginRequest, UserRegisterRequest
+from auth.schemas.user import UserResponse
 from shared.core.exceptions import NotFoundException
 
 router = APIRouter(prefix="/auth", tags=["auth"])
