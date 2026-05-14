@@ -62,6 +62,13 @@ async def proxy_request(
     if status_error_map and response.status_code in status_error_map:
         raise status_error_map[response.status_code]
 
+    if response.is_error:
+        logger.warning(
+            "Passing through error response: status={status} url={url}",
+            status=response.status_code,
+            url=base_url,
+        )
+
     # 4. Return Response
     return Response(
         content=response.content,
