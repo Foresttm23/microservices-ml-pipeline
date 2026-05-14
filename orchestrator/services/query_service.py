@@ -40,6 +40,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
         user_id: str,
         message: str,
         pipeline_id: str,
+        interaction_id: UUID | None = None,
     ) -> UUID:
         """
         Create a PENDING query and enqueue it for processing.
@@ -49,6 +50,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
             user_id: User ID
             message: Query message content
             pipeline_id: Target pipeline
+            interaction_id: Previous message interaction id, for saving context.
 
         Returns:
             UUID of the created query
@@ -68,6 +70,7 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
             correlation_id=correlation_id,
             user_id=user_id,
             message=message,
+            interaction_id=interaction_id,
         )
         await self.repo.save(query)
         await self.session.commit()

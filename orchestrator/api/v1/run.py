@@ -34,6 +34,7 @@ async def run_pipeline(
         user_id=user_id,
         message=payload.message,
         pipeline_id=pipeline_id,
+        interaction_id=payload.interaction_id,
     )
 
     logger.info(

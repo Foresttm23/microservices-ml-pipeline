@@ -19,11 +19,18 @@ class QueryEntity(BaseDomainEntity, CreatedAtMixin, UpdatedAtMixin):
     state: QueryState = QueryState.PENDING
 
     @classmethod
-    def create(cls, user_id: str, correlation_id: UUID, message: str) -> "QueryEntity":
+    def create(
+        cls,
+        user_id: str,
+        correlation_id: UUID,
+        message: str,
+        interaction_id: UUID | None = None,
+    ) -> "QueryEntity":
         """Factory to ensure a clean initial state."""
         return cls(
             user_id=user_id,
             correlation_id=correlation_id,
+            interaction_id=interaction_id or uuid4(),
             message=message,
             state=QueryState.PENDING,
         )

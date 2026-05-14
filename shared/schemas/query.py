@@ -6,6 +6,7 @@ from shared.schemas import BaseSchema
 
 class PipelineRequest(BaseSchema):
     message: str
+    interaction_id: UUID | None = None
 
 
 class PipelineResponse(BaseSchema):
