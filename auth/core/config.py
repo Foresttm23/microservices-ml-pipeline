@@ -37,6 +37,12 @@ class AuthSettings(BaseSettings):
         "/auth/logout",
     ]
 
+    # CORS
+    CORS_ALLOW_ORIGINS: list[str] = ["*"]
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: list[str] = ["*"]
+    CORS_ALLOW_HEADERS: list[str] = ["*"]
+
     @property
     def DATABASE_URL(self) -> str:
         return (

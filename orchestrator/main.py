@@ -61,10 +61,10 @@ app.add_middleware(LoggingContextMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_settings().CORS_ALLOW_ORIGINS,
+    allow_credentials=get_settings().CORS_ALLOW_CREDENTIALS,
+    allow_methods=get_settings().CORS_ALLOW_METHODS,
+    allow_headers=get_settings().CORS_ALLOW_HEADERS,
 )
 
 

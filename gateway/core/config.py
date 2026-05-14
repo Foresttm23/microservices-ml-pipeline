@@ -49,6 +49,13 @@ class GatewaySettings(BaseSettings):
     RATE_LIMIT_AUTH_LOGOUT: int = 5
     RATE_LIMIT_AUTH_ME: int = 5
     RATE_LIMIT_QUERY_RUN: int = 5
+
+    # CORS
+    CORS_ALLOW_ORIGINS: list[str] = ["*"]
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: list[str] = ["*"]
+    CORS_ALLOW_HEADERS: list[str] = ["*"]
+
     # Port
     PORT: int = 8000
 
