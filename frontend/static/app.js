@@ -11,6 +11,8 @@ const GATEWAY_URL = window.CONFIG.GATEWAY_URL;
 const GATEWAY_WS_URL = window.CONFIG.GATEWAY_WS_URL;
 
 let ws = null;
+let chats = [];
+let currentChatId = null;
 
 // DOM Elements
 const terminal = document.getElementById('terminal');
@@ -59,7 +61,7 @@ function logToClean(data) {
         return;
     }
 
-    const outputText = data.output || data.result || data.message || data.text;
+    const outputText = data.output || data.result || data.message || data.output_text || data.text;
     const status = data.status || data.state || (data.access_token ? 'SUCCESS' : 'COMPLETED');
     const timestamp = data.completed_at || data.created_at || new Date().toISOString();
 
@@ -73,12 +75,61 @@ function logToClean(data) {
         <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
     </div>`;
 
-    let contentHtml = `<div class="clean-content">${outputText || JSON.stringify(data, null, 2)}</div>`;
+    let contentHtml = `<div class="clean-content">${outputText || JSON.stringify({
+        status: data.status,
+        message: "No output"
+    }, null, 2)}</div>`;
 
     msgDiv.innerHTML = metaHtml + contentHtml;
     cleanOutput.appendChild(msgDiv);
     cleanOutput.scrollTop = cleanOutput.scrollHeight;
 }
+
+// Chat Helpers
+function createChat() {
+    const id = Date.now().toString();
+    chats.push({
+        id,
+        interactionId: null,
+        title: `Chat ${chats.length + 1}`,
+        cleanHtml: '<div class="empty-state">Waiting for results...</div>',
+        rawHtml: '<div class="terminal-line"><span class="prompt">></span> Ready...</div>'
+    });
+    switchChat(id);
+    renderChatList();
+}
+
+function switchChat(id) {
+    if (currentChatId) {
+        const oldChat = chats.find(c => c.id === currentChatId);
+        if (oldChat) {
+            oldChat.cleanHtml = cleanOutput.innerHTML;
+            oldChat.rawHtml = terminal.innerHTML;
+        }
+    }
+
+    currentChatId = id;
+    const newChat = chats.find(c => c.id === currentChatId);
+    if (newChat) {
+        cleanOutput.innerHTML = newChat.cleanHtml;
+        terminal.innerHTML = newChat.rawHtml;
+    }
+    renderChatList();
+}
+
+function renderChatList() {
+    const chatList = document.getElementById('chatList');
+    chatList.innerHTML = '';
+    chats.forEach(chat => {
+        const li = document.createElement('li');
+        li.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+        li.textContent = chat.title;
+        li.onclick = () => switchChat(chat.id);
+        chatList.appendChild(li);
+    });
+}
+
+document.getElementById('btnNewChat').addEventListener('click', createChat);
 
 document.getElementById('btnClearTerminal').addEventListener('click', () => {
     terminal.innerHTML = '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
@@ -210,9 +261,19 @@ document.getElementById('btnMe').addEventListener('click', async () => {
 // Event Listeners - Pipeline
 document.getElementById('btnRun').addEventListener('click', async () => {
     const pipelineId = pipelineIdInput.value || 'default';
+    const currentChat = chats.find(c => c.id === currentChatId);
+
+    if (currentChat && promptInput.value) {
+        if (currentChat.title.startsWith('Chat ')) {
+            currentChat.title = promptInput.value.substring(0, 20) + '...';
+            renderChatList();
+        }
+    }
+
     await apiRequest('POST', `/pipelines/${pipelineId}/run`, {
         message: promptInput.value,
-        client_id: localStorage.getItem(SESSION_KEY)
+        client_id: localStorage.getItem(SESSION_KEY),
+        interaction_id: currentChat ? currentChat.interactionId : null
     });
 });
 
@@ -233,6 +294,13 @@ function connectWebSocket(userId) {
             logToTerminal(`[WS] Received Result:`, 'success');
             logToTerminal(data, 'success');
             logToClean(data);
+
+            if (data.interaction_id && currentChatId) {
+                const currentChat = chats.find(c => c.id === currentChatId);
+                if (currentChat) {
+                    currentChat.interactionId = data.interaction_id;
+                }
+            }
         } catch (e) {
             logToTerminal(`[WS] ${event.data}`, 'success');
         }
@@ -249,3 +317,4 @@ function connectWebSocket(userId) {
 
 // Initial Setup
 updateStatus();
+createChat();
