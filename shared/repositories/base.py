@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase as OrmModel
+from sqlalchemy import select, func, Select
 
 from shared.schemas.base import BaseDomainEntity
 
@@ -135,3 +136,17 @@ class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
             True if the record was removed, False if not found.
         """
         pass
+
+    async def _get_paginated(self, stmt: Select, skip: int, limit: int) -> tuple[list[TEntity], int]:
+        """
+        Helper method to execute a paginated query and return both the entities and total count.
+        """
+        total_stmt = select(func.count()).select_from(stmt.subquery())
+        total_result = await self.session.execute(total_stmt)
+        total = total_result.scalar_one()
+
+        paginated_stmt = stmt.offset(skip).limit(limit)
+        result = await self.session.execute(paginated_stmt)
+        items = [self.map_model_to_entity(model) for model in result.scalars().all()]
+        return items, total
+

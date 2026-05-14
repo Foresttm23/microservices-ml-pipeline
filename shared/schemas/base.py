@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from typing import Generic, TypeVar, Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -18,3 +19,10 @@ class CreatedAtMixin(BaseSchema):
 
 class UpdatedAtMixin(BaseSchema):
     updated_at: datetime | None = None
+
+
+class PaginatedResponse[T](BaseModel):
+    items: Sequence[T]
+    total: int
+    skip: int
+    limit: int
