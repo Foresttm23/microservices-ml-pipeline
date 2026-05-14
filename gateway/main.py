@@ -51,10 +51,10 @@ async def lifespan(app: FastAPI):
     await close_httpx()
 
 
-app = FastAPI(lifespan=lifespan, dependencies=[RateLimiterGlobalDep])
-app.include_router(auth_router)
-app.include_router(health_router)
-app.include_router(query_router)
+app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router, dependencies=[RateLimiterGlobalDep])
+app.include_router(health_router, dependencies=[RateLimiterGlobalDep])
+app.include_router(query_router, dependencies=[RateLimiterGlobalDep])
 app.include_router(websocket_router)
 
 global_exception_handler(app, service_error_map=GATEWAY_ERROR_MAP)

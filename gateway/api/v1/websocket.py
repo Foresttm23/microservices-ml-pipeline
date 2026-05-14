@@ -19,6 +19,7 @@ async def results_socket(websocket: WebSocket, user_id: str = "anonymous") -> No
             if isinstance(message, bytes):
                 message = message.decode("utf-8")
             await websocket.send_text(message)
+            logger.info("Sent message to user {}", user_id)
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for user {}", user_id)
     except Exception:
