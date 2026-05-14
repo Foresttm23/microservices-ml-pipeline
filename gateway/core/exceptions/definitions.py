@@ -1,6 +1,6 @@
 from shared.core.exceptions import ErrorDefinition
 
-from gateway.exceptions.gateway_errors import (
+from gateway.core.exceptions.gateway_errors import (
     AuthProxyFailed,
     OrchestratorProxyFailed,
     WebSocketBridgeFailed,

@@ -4,7 +4,7 @@ from loguru import logger
 from gateway.core.config import get_settings
 from gateway.dependencies.httpx import HTTPXClientDep
 from gateway.dependencies.rate_limiter import RateLimiterQueryRunDep
-from gateway.exceptions.gateway_errors import OrchestratorProxyFailed
+from gateway.core.exceptions.gateway_errors import OrchestratorProxyFailed
 from shared.schemas import PipelineRequest
 from shared.utils import proxy_request  # Your new utility
 
