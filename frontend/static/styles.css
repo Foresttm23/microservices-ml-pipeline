@@ -22,7 +22,7 @@ body {
     font-family: 'Outfit', sans-serif;
     background-color: var(--bg-color);
     background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
@@ -31,7 +31,8 @@ body {
 #app {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .glass-header {
@@ -96,12 +97,17 @@ body {
     max-width: 1600px;
     margin: 0 auto;
     width: 100%;
+    height: calc(100vh - 80px);
+    /* 80px is header approx height */
+    overflow: hidden;
 }
 
 .panels {
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
 }
 
 .glass-panel {
@@ -136,7 +142,8 @@ body {
     margin-bottom: 0.5rem;
 }
 
-input, textarea {
+input,
+textarea {
     width: 100%;
     background: rgba(15, 23, 42, 0.5);
     border: 1px solid var(--glass-border);
@@ -148,7 +155,8 @@ input, textarea {
     transition: all 0.2s;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
@@ -215,7 +223,8 @@ textarea {
     flex-direction: column;
     height: 100%;
     min-height: 400px;
-    max-height: 600px; /* Limits the max height to prevent endless stretching */
+    max-height: 600px;
+    /* Limits the max height to prevent endless stretching */
 }
 
 .terminal-header {
@@ -313,12 +322,34 @@ textarea {
     border-radius: 4px;
 }
 
+.clean-message.user {
+    border-left-color: var(--secondary-color);
+    background: rgba(139, 92, 246, 0.05);
+}
+
 .clean-metadata {
     font-size: 0.75rem;
     color: var(--text-secondary);
     margin-bottom: 0.5rem;
     display: flex;
+    align-items: center;
     gap: 1rem;
+}
+
+.role-tag {
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.65rem;
+}
+
+.clean-message.user .role-tag {
+    color: var(--secondary-color);
+}
+
+.clean-message.assistant .role-tag {
+    color: var(--primary-color);
 }
 
 .clean-content {
@@ -358,6 +389,8 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    height: 100%;
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -377,6 +410,8 @@ textarea {
     flex-direction: column;
     gap: 0.5rem;
     overflow-y: auto;
+    flex-grow: 1;
+    padding-right: 0.25rem;
 }
 
 .chat-item {

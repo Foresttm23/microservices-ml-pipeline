@@ -13,6 +13,9 @@ const GATEWAY_WS_URL = window.CONFIG.GATEWAY_WS_URL;
 let ws = null;
 let chats = [];
 let currentChatId = null;
+let lastActivity = Date.now();
+const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutes
+
 
 // DOM Elements
 const terminal = document.getElementById('terminal');
@@ -53,32 +56,34 @@ function logToTerminal(message, type = 'info') {
     terminal.scrollTop = terminal.scrollHeight;
 }
 
-function logToClean(data) {
+function logToClean(data, role = 'assistant') {
     const emptyState = cleanOutput.querySelector('.empty-state');
     if (emptyState) emptyState.remove();
 
     if (typeof data !== 'object' || data === null) {
-        return;
+        if (typeof data === 'string') {
+            data = {output: data};
+        } else {
+            return;
+        }
     }
 
-    const outputText = data.output || data.result || data.message || data.output_text || data.text;
-    const status = data.status || data.state || (data.access_token ? 'SUCCESS' : 'COMPLETED');
+    const outputText = data.output || data.result || data.message || data.output_text || data.text || data.content;
+    const status = data.status || data.state || 'COMPLETED';
     const timestamp = data.completed_at || data.created_at || new Date().toISOString();
 
-    if (!outputText && !data.status && !data.access_token) return;
+    if (!outputText && role !== 'user') return;
 
     const msgDiv = document.createElement('div');
-    msgDiv.className = 'clean-message';
+    msgDiv.className = `clean-message ${role}`;
 
     let metaHtml = `<div class="clean-metadata">
+        <span class="role-tag">${role.toUpperCase()}</span>
         <span><strong>Status:</strong> ${status}</span>
         <span><strong>Time:</strong> ${new Date(timestamp).toLocaleString()}</span>
     </div>`;
 
-    let contentHtml = `<div class="clean-content">${outputText || JSON.stringify({
-        status: data.status,
-        message: "No output"
-    }, null, 2)}</div>`;
+    let contentHtml = `<div class="clean-content">${outputText || "..."}</div>`;
 
     msgDiv.innerHTML = metaHtml + contentHtml;
     cleanOutput.appendChild(msgDiv);
@@ -88,7 +93,7 @@ function logToClean(data) {
 // Chat Helpers
 function createChat() {
     const id = Date.now().toString();
-    chats.push({
+    chats.unshift({
         id,
         interactionId: null,
         title: `Chat ${chats.length + 1}`,
@@ -99,7 +104,7 @@ function createChat() {
     renderChatList();
 }
 
-function switchChat(id) {
+async function switchChat(id) {
     if (currentChatId) {
         const oldChat = chats.find(c => c.id === currentChatId);
         if (oldChat) {
@@ -110,11 +115,64 @@ function switchChat(id) {
 
     currentChatId = id;
     const newChat = chats.find(c => c.id === currentChatId);
-    if (newChat) {
-        cleanOutput.innerHTML = newChat.cleanHtml;
-        terminal.innerHTML = newChat.rawHtml;
+    if (!newChat) return;
+
+    if (newChat.interactionId && !newChat.loaded) {
+        cleanOutput.innerHTML = '';
+        terminal.innerHTML = '';
+        logToTerminal('Loading history...');
+        const data = await apiRequest('GET', `/chats/${newChat.interactionId}/messages`);
+        cleanOutput.innerHTML = '';
+        terminal.innerHTML = '';
+        if (data && data.items) {
+            data.items.forEach(msg => {
+                logToTerminal(`Prompt: ${msg.message}`);
+                logToClean({
+                    message: msg.message,
+                    created_at: msg.created_at,
+                    state: msg.state
+                }, 'user');
+
+                if (msg.responses) {
+                    msg.responses.forEach(resp => {
+                        const payload = {
+                            status: msg.state,
+                            completed_at: resp.created_at,
+                            output: resp.content
+                        };
+                        logToClean(payload, 'assistant');
+                        logToTerminal(payload, 'success');
+                    });
+                }
+            });
+            newChat.loaded = true;
+            newChat.cleanHtml = cleanOutput.innerHTML || '<div class="empty-state">Waiting for results...</div>';
+            newChat.rawHtml = terminal.innerHTML || '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+        }
     }
+
+    cleanOutput.innerHTML = newChat.cleanHtml || '<div class="empty-state">Waiting for results...</div>';
+    terminal.innerHTML = newChat.rawHtml || '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+
     renderChatList();
+}
+
+async function loadChats() {
+    const data = await apiRequest('GET', '/chats', null, true);
+    if (data && data.items && data.items.length > 0) {
+        chats = data.items.map((q) => ({
+            id: q.interaction_id,
+            interactionId: q.interaction_id,
+            title: q.message.substring(0, 20) + (q.message.length > 20 ? '...' : ''),
+            cleanHtml: '',
+            rawHtml: '',
+            loaded: false
+        }));
+        switchChat(chats[0].id);
+    } else {
+        chats = [];
+        createChat();
+    }
 }
 
 function renderChatList() {
@@ -150,6 +208,7 @@ function updateStatus() {
             statusText.textContent = payload.sub || 'Authenticated';
             statusDot.classList.add('active');
             connectWebSocket(payload.sub);
+            loadChats(); // Load history when authenticated
         } catch (e) {
             statusText.textContent = 'Invalid Token';
             statusDot.classList.remove('active');
@@ -158,11 +217,13 @@ function updateStatus() {
         statusText.textContent = 'Not Authenticated';
         statusDot.classList.remove('active');
         connectWebSocket('anonymous'); // Connect as anonymous if needed
+        chats = [];
+        createChat(); // Blank chat for anonymous
     }
 }
 
 // API Wrapper
-async function apiRequest(method, endpoint, body = null) {
+async function apiRequest(method, endpoint, body = null, silent = false) {
     logToTerminal(`[${method}] ${endpoint}`);
     try {
         const headers = {
@@ -193,7 +254,9 @@ async function apiRequest(method, endpoint, body = null) {
         }
 
         logToTerminal(data, 'success');
-        logToClean(data);
+        if (!silent) {
+            logToClean(data);
+        }
         return data;
     } catch (error) {
         logToTerminal(`Network Error: ${error.message}`, 'error');
@@ -233,14 +296,23 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
 
     const data = await apiRequest('POST', '/auth/refresh', {
         refresh_token: refreshToken
-    });
+    }, true);
 
     if (data && data.access_token) {
         localStorage.setItem(TOKEN_KEY, data.access_token);
         if (data.refresh_token) {
             localStorage.setItem(REFRESH_KEY, data.refresh_token);
         }
+        logToClean({
+            message: "Token refreshed successfully. Session extended.",
+            status: "SUCCESS"
+        }, 'assistant');
         updateStatus();
+    } else {
+        logToClean({
+            message: "Failed to refresh token. Please login again.",
+            status: "ERROR"
+        }, 'assistant');
     }
 });
 
@@ -251,11 +323,26 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.setItem(SESSION_KEY, crypto.randomUUID());
+
+    // Clear frontend memory
+    chats = [];
+    currentChatId = null;
+    terminal.innerHTML = '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+    cleanOutput.innerHTML = '<div class="empty-state">Waiting for results...</div>';
+
     updateStatus();
 });
 
 document.getElementById('btnMe').addEventListener('click', async () => {
-    await apiRequest('GET', '/auth/me');
+    const data = await apiRequest('GET', '/auth/me', null, true);
+    if (data) {
+        logToClean({
+            message: `User Profile:\nEmail: ${data.email}\nID: ${data.id}\nCreated: ${new Date(data.created_at).toLocaleString()}`,
+            status: "AUTHENTICATED"
+        }, 'assistant');
+    }
 });
 
 // Event Listeners - Pipeline
@@ -315,6 +402,28 @@ function connectWebSocket(userId) {
     };
 }
 
+// Activity Monitoring
+function resetInactivityTimer() {
+    lastActivity = Date.now();
+}
+
+window.addEventListener('mousedown', resetInactivityTimer);
+window.addEventListener('keypress', resetInactivityTimer);
+window.addEventListener('scroll', resetInactivityTimer);
+window.addEventListener('touchstart', resetInactivityTimer);
+
+setInterval(() => {
+    if (Date.now() - lastActivity > INACTIVITY_LIMIT) {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+            console.log('Inactivity detected, reloading chats...');
+            logToTerminal('Inactivity detected, refreshing chat list...');
+            loadChats();
+            resetInactivityTimer();
+        }
+    }
+}, 60000); // Check every minute
+
 // Initial Setup
 updateStatus();
-createChat();
+
