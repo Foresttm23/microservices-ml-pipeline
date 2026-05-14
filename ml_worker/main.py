@@ -41,7 +41,7 @@ def _init_generator(
     settings: GeminiSettings,
 ) -> TextGenerator:
     """
-    Strategy Pattern: Returns a real or mock generator based on settings.
+    Strategy Pattern: Returns a real or mock generator based on settings.py.
     """
     if settings.ML_WORKER_DRY_RUN:
         logger.warning("Initializing ML Worker in DRY_RUN mode")

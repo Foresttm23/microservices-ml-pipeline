@@ -24,7 +24,7 @@ members = [
 
 [tool.pyright]
 # BasedPyright / Pyright configuration for this monorepo.
-# Keep settings conservative so developers don't get noisy errors by default.
+# Keep settings.py conservative so developers don't get noisy errors by default.
 pythonVersion = "3.13"
 typeCheckingMode = "basic" # 'off'| 'basic' | 'strict' - 'basic' is a good middle ground
 

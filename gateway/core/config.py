@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class GatewaySettings(BaseSettings):
-    """Gateway service settings."""
+    """Gateway service settings.py."""
 
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
@@ -12,17 +12,17 @@ class GatewaySettings(BaseSettings):
     ORCHESTRATOR_URL: str = "http://orchestrator:8001"
     AUTH_URL: str = "http://auth:8003"
 
-    # HTTPX Client settings
+    # HTTPX Client settings.py
     HTTPX_TIMEOUT_SECONDS: int = 60
     HTTPX_MAX_CONNECTIONS: int = 100
     HTTPX_MAX_KEEPALIVE_CONNECTIONS: int = 20
 
-    # Redis settings
+    # Redis settings.py
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # JWT settings
+    # JWT settings.py
     JWT_ENABLED: bool = True
     JWT_SECRET_KEY: str = "dev-secret"
     JWT_ALGORITHM: str = "HS256"
@@ -62,5 +62,5 @@ class GatewaySettings(BaseSettings):
 
 @lru_cache
 def get_settings() -> GatewaySettings:
-    """Get cached gateway settings."""
+    """Get cached gateway settings.py."""
     return GatewaySettings()

@@ -5,7 +5,6 @@ from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
-# todo - add correlation and user ids to the logging context.
 class ResponseLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = time.perf_counter()

@@ -8,7 +8,7 @@ USER_ID_HEADER = "X-User-ID"
 
 
 class SharedSettings(BaseSettings):
-    """Shared settings across all services (Redis, logging, etc.)."""
+    """Shared settings.py across all services (Redis, logging, etc.)."""
 
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
@@ -29,5 +29,5 @@ class SharedSettings(BaseSettings):
 
 @lru_cache
 def get_shared_settings() -> SharedSettings:
-    """Get cached shared settings."""
+    """Get cached shared settings.py."""
     return SharedSettings()

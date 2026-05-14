@@ -20,7 +20,7 @@ include = ["shared*"]
 
 
 [tool.pyright]
-# Per-package pyright settings to keep IDEs and basedpyright happy.
+# Per-package pyright settings.py to keep IDEs and basedpyright happy.
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
 
@@ -28,10 +28,10 @@ typeCheckingMode = "basic"
 include = ["."]
 
 exclude = [
-  "**/__pycache__/**",
-  "**/migrations/**",
-  "**/.venv/**",
-  "**/venv/**",
+    "**/__pycache__/**",
+    "**/migrations/**",
+    "**/.venv/**",
+    "**/venv/**",
 ]
 
 reportMissingImports = false
