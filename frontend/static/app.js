@@ -62,7 +62,7 @@ function logToClean(data, role = 'assistant') {
 
     if (typeof data !== 'object' || data === null) {
         if (typeof data === 'string') {
-            data = {output: data};
+            data = { output: data };
         } else {
             return;
         }
@@ -88,6 +88,100 @@ function logToClean(data, role = 'assistant') {
     msgDiv.innerHTML = metaHtml + contentHtml;
     cleanOutput.appendChild(msgDiv);
     cleanOutput.scrollTop = cleanOutput.scrollHeight;
+}
+
+// Toast Notifications
+function showToast(title, message, type = 'info') {
+    console.log(`[Toast] ${type.toUpperCase()}: ${title} - ${message}`);
+    
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ',
+        warning: '⚠'
+    };
+
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto remove
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            if (toast.parentNode === container) {
+                container.removeChild(toast);
+            }
+            if (container.childNodes.length === 0) {
+                container.remove();
+            }
+        }, 300);
+    }, 5000);
+}
+
+function handleApiError(response, data) {
+    const status = response.status;
+    let title = "Error";
+    let message = "An unexpected error occurred.";
+
+    const errorMap = {
+        400: "Invalid request. Please check your input.",
+        401: "Session expired or unauthorized. Please login.",
+        403: "You don't have permission to perform this action.",
+        404: "The requested resource was not found.",
+        422: "Validation error. Please check your email and password format.",
+        429: "Too many requests. Please wait a moment before trying again.",
+        500: "Internal server error. Our team is looking into it.",
+        502: "Service temporarily unavailable. Try again in a moment.",
+        503: "The service is under heavy load. Please wait.",
+        504: "The request timed out. Please try again."
+    };
+
+    if (errorMap[status]) {
+        message = errorMap[status];
+    }
+
+    // Specific logic for 422 (often used for auth errors in this repo)
+    if (status === 422) {
+        title = "Auth Error";
+        message = "Invalid email or password format.";
+    } else if (status === 401) {
+        title = "Authentication Required";
+    }
+
+    // If backend provided a specific detail message, we can log it to terminal but show generic toast
+    const detail = data && (data.detail || data.message || (typeof data === 'string' ? data : null));
+    if (detail) {
+        console.error(`API Error [${status}]:`, detail);
+        // If it's a validation error with list of errors
+        if (Array.isArray(detail)) {
+            const firstErr = detail[0];
+            if (firstErr && firstErr.msg) {
+                message = firstErr.msg;
+            }
+        } else if (typeof detail === 'string' && detail.length < 100) {
+            // If it's a short string, we can show it directly
+            message = detail;
+        }
+    }
+
+    showToast(title, message, 'error');
 }
 
 // Chat Helpers
@@ -197,7 +291,7 @@ document.getElementById('btnClearTerminal').addEventListener('click', () => {
 // Auth Helpers
 function getAuthHeaders() {
     const token = localStorage.getItem(TOKEN_KEY);
-    return token ? {'Authorization': `Bearer ${token}`} : {};
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
 function updateStatus() {
@@ -212,6 +306,7 @@ function updateStatus() {
         } catch (e) {
             statusText.textContent = 'Invalid Token';
             statusDot.classList.remove('active');
+            showToast("Session Error", "Your session token is invalid. Please login again.", "warning");
         }
     } else {
         statusText.textContent = 'Not Authenticated';
@@ -231,7 +326,7 @@ async function apiRequest(method, endpoint, body = null, silent = false) {
             ...getAuthHeaders()
         };
 
-        const options = {method, headers};
+        const options = { method, headers };
         if (body) options.body = JSON.stringify(body);
 
         const response = await fetch(`${GATEWAY_URL}${endpoint}`, options);
@@ -250,6 +345,7 @@ async function apiRequest(method, endpoint, body = null, silent = false) {
 
         if (!response.ok) {
             logToTerminal(data, 'error');
+            handleApiError(response, data);
             return null;
         }
 
@@ -260,16 +356,20 @@ async function apiRequest(method, endpoint, body = null, silent = false) {
         return data;
     } catch (error) {
         logToTerminal(`Network Error: ${error.message}`, 'error');
+        showToast("Network Error", "Unable to connect to the server. Please check your internet connection.", "error");
         return null;
     }
 }
 
 // Event Listeners - Auth
 document.getElementById('btnRegister').addEventListener('click', async () => {
-    await apiRequest('POST', '/auth/register', {
+    const data = await apiRequest('POST', '/auth/register', {
         email: emailInput.value,
         password: passwordInput.value
     });
+    if (data) {
+        showToast("Success", "Account created successfully. You can now login.", "success");
+    }
 });
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
@@ -283,6 +383,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
         if (data.refresh_token) {
             localStorage.setItem(REFRESH_KEY, data.refresh_token);
         }
+        showToast("Welcome", "Login successful! Your session is now active.", "success");
         updateStatus();
     }
 });
@@ -291,6 +392,7 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
     const refreshToken = localStorage.getItem(REFRESH_KEY);
     if (!refreshToken) {
         logToTerminal('No refresh token available', 'error');
+        showToast("Session Expired", "No refresh token found. Please login again.", "warning");
         return;
     }
 
@@ -307,6 +409,7 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
             message: "Token refreshed successfully. Session extended.",
             status: "SUCCESS"
         }, 'assistant');
+        showToast("Refreshed", "Your session has been successfully extended.", "success");
         updateStatus();
     } else {
         logToClean({
@@ -319,7 +422,7 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
 document.getElementById('btnLogout').addEventListener('click', async () => {
     const refreshToken = localStorage.getItem(REFRESH_KEY);
     if (refreshToken) {
-        await apiRequest('POST', '/auth/logout', {refresh_token: refreshToken});
+        await apiRequest('POST', '/auth/logout', { refresh_token: refreshToken });
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -333,6 +436,7 @@ document.getElementById('btnLogout').addEventListener('click', async () => {
     cleanOutput.innerHTML = '<div class="empty-state">Waiting for results...</div>';
 
     updateStatus();
+    showToast("Logged Out", "You have been safely logged out.", "info");
 });
 
 document.getElementById('btnMe').addEventListener('click', async () => {
@@ -357,11 +461,16 @@ document.getElementById('btnRun').addEventListener('click', async () => {
         }
     }
 
-    await apiRequest('POST', `/pipelines/${pipelineId}/run`, {
+    const data = await apiRequest('POST', `/pipelines/${pipelineId}/run`, {
         message: promptInput.value,
         client_id: localStorage.getItem(SESSION_KEY),
         interaction_id: currentChat ? currentChat.interactionId : null
     });
+
+    if (data) {
+        showToast("Task Sent", "Your request has been submitted and is being processed.", "success");
+        promptInput.value = ''; // Clear input on success
+    }
 });
 
 // WebSocket Connection
@@ -399,6 +508,7 @@ function connectWebSocket(userId) {
 
     ws.onerror = (error) => {
         logToTerminal(`[WS] Error: ${error}`, 'error');
+        showToast("Connection Error", "The real-time updates channel encountered an error.", "warning");
     };
 }
 
