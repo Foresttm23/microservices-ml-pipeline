@@ -3,11 +3,9 @@ from __future__ import annotations
 from typing import Any, Protocol, cast
 
 import jwt
-from fastapi import Request
 from fastapi.responses import JSONResponse
 from loguru import logger
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class JWTSettingsProtocol(Protocol):
@@ -23,84 +21,86 @@ class JWTSettingsProtocol(Protocol):
     JWT_PUBLIC_PATHS: list[str]
 
 
-class JWTAuthMiddleware(BaseHTTPMiddleware):
+class JWTAuthMiddleware:
     def __init__(self, app: ASGIApp, settings: JWTSettingsProtocol) -> None:
-        self._settings = settings
-        super().__init__(app)
+        self.app = app
+        self.settings = settings
 
-    async def dispatch(self, request: Request, call_next) -> JSONResponse | Any | None:
-        # 1. Start as anonymous
-        request.state.user_id = "anonymous"
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        # Only process HTTP requests
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        # Global bypasses
-        if not self._settings.JWT_ENABLED or request.method == "OPTIONS":
-            return await call_next(request)
+        # Initialize state if not present (equivalent to request.state)
+        scope.setdefault("state", {})
+        scope["state"]["user_id"] = "anonymous"
 
-        # 2. Try to extract and decode the token
-        token = self._extract_bearer_token(request)
+        # 1. Global bypasses
+        method = scope.get("method", "")
+        if not self.settings.JWT_ENABLED or method == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+
+        # 2. Path matching
+        path = scope.get("path", "")
+        is_public = any(path.startswith(p) for p in self.settings.JWT_PUBLIC_PATHS)
+
+        # 3. Extract and validate token
+        token = self._get_bearer_token(scope)
+
         if token:
-            return await self._handle_token_auth(request, call_next, token)
+            try:
+                payload = self._decode_token(token)
+                user_id = payload.get(self.settings.JWT_USER_ID_CLAIM)
 
-        return await self._fallback_to_anonymous(request, call_next)
+                if user_id:
+                    scope["state"]["user_id"] = str(user_id)
+                    with logger.contextualize(user_id=scope["state"]["user_id"]):
+                        await self.app(scope, receive, send)
+                    return
 
-    async def _handle_token_auth(
-        self, request: Request, call_next, token: str
-    ) -> JSONResponse | Any:
-        try:
-            payload = self._decode_token(token)
-            user_id = payload.get(self._settings.JWT_USER_ID_CLAIM)
+            except jwt.PyJWTError as exc:
+                logger.warning("JWT validation failed: {}", exc)
+                response = self._unauthorized("Invalid or expired token")
+                await response(scope, receive, send)
+                return
 
-            if user_id:
-                request.state.user_id = str(user_id)
-                # Success! Contextualize logs and move to the next middleware
-                with logger.contextualize(user_id=request.state.user_id):
-                    return await call_next(request)
+        # 4. Final check for private paths
+        if not is_public and scope["state"]["user_id"] == "anonymous":
+            response = self._unauthorized("Authentication required for this resource")
+            await response(scope, receive, send)
+            return
 
-            return await self._fallback_to_anonymous(request, call_next)
+        await self.app(scope, receive, send)
 
-        except jwt.PyJWTError as exc:
-            logger.warning("JWT validation failed: {}", exc)
-            return self._unauthorized("Invalid or expired token")
-
-    async def _fallback_to_anonymous(
-        self, request: Request, call_next
-    ) -> JSONResponse | Any | None:
-        if request.state.user_id == "anonymous":
-            if not self._is_public_path(request.url.path):
-                return self._unauthorized("Authentication required for this resource")
-
-        return await call_next(request)
+    def _get_bearer_token(self, scope: Scope) -> str | None:
+        headers = scope.get("headers", [])
+        for key, value in headers:
+            if key == b"authorization":
+                try:
+                    auth_str = value.decode("latin-1")
+                    parts = auth_str.split()
+                    if len(parts) == 2 and parts[0].lower() == "bearer":
+                        return parts[1]
+                except UnicodeDecodeError:
+                    return None
+        return None
 
     def _decode_token(self, token: str) -> dict[str, object]:
-        audience = self._settings.JWT_AUDIENCE
-        issuer = self._settings.JWT_ISSUER
-        leeway = float(self._settings.JWT_LEEWAY_SECONDS)
+        audience = self.settings.JWT_AUDIENCE
+        issuer = self.settings.JWT_ISSUER
+        leeway = float(self.settings.JWT_LEEWAY_SECONDS)
         options = None if audience else cast(Any, {"verify_aud": False})
 
         return jwt.decode(
             token,
-            key=self._settings.JWT_SECRET_KEY,
-            algorithms=[self._settings.JWT_ALGORITHM],
+            key=self.settings.JWT_SECRET_KEY,
+            algorithms=[self.settings.JWT_ALGORITHM],
             leeway=leeway,
             issuer=issuer,
             audience=audience,
             options=options,
-        )
-
-    def _extract_bearer_token(self, request: Request) -> str | None:
-        auth_header = request.headers.get("authorization")
-        if not auth_header:
-            return None
-
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-            return None
-
-        return parts[1]
-
-    def _is_public_path(self, path: str) -> bool:
-        return any(
-            path.startswith(prefix) for prefix in self._settings.JWT_PUBLIC_PATHS
         )
 
     @staticmethod

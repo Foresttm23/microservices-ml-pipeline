@@ -1,9 +1,10 @@
+from __future__ import annotations
+
+from urllib.parse import parse_qs
 from uuid import uuid4
 
-from fastapi import Request, Response
 from loguru import logger
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from shared.core.config import (
     CORRELATION_ID_HEADER,
@@ -11,38 +12,54 @@ from shared.core.config import (
 )
 
 
-class LoggingContextMiddleware(BaseHTTPMiddleware):
+class LoggingContextMiddleware:
     def __init__(self, app: ASGIApp) -> None:
+        self.app = app
         self._settings = get_shared_settings()
-        super().__init__(app)
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        correlation_id = request.headers.get(CORRELATION_ID_HEADER) or str(uuid4())
-        user_id = self._extract_user_id(request, debug=self._settings.DEBUG)
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-        request.state.correlation_id = correlation_id
-        request.state.user_id = user_id
+        # 1. Extract Correlation ID from headers
+        headers = dict(scope.get("headers", []))
+        correlation_id = headers.get(CORRELATION_ID_HEADER.lower().encode())
+        correlation_id = correlation_id.decode() if correlation_id else str(uuid4())
 
+        # 2. Setup state
+        scope.setdefault("state", {})
+        scope["state"]["correlation_id"] = correlation_id
+
+        # 3. Extract User ID (Handling debug query params and state)
+        user_id = self._extract_user_id(scope, debug=self._settings.DEBUG)
+        scope["state"]["user_id"] = user_id
+
+        # 4. Define the send wrapper to inject the header back into the response
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                # Convert list of tuples to a list so we can modify it
+                response_headers = list(message.get("headers", []))
+
+                # Add the correlation ID header
+                response_headers.append(
+                    (CORRELATION_ID_HEADER.encode().lower(), correlation_id.encode())
+                )
+                message["headers"] = response_headers
+
+            await send(message)
+
+        # 5. Execute with contextual logging
         with logger.contextualize(correlation_id=correlation_id, user_id=user_id):
-            response = await call_next(request)
+            await self.app(scope, receive, send_wrapper)
 
-            response.headers[CORRELATION_ID_HEADER] = correlation_id
+    def _extract_user_id(self, scope: Scope, *, debug: bool) -> str:
+        # Debug logic: check query string
+        if debug:
+            query_string = scope.get("query_string", b"").decode()
+            params = parse_qs(query_string)
+            if "user_id" in params:
+                return params["user_id"][0]
 
-        return response
-
-    @staticmethod
-    def _extract_user_id(request: Request, *, debug: bool) -> str:
-        """
-        Receives a request object and extracts the user id from it.
-        If JWT middleware isnt implemented yet, it will return "anonymous" as user id, allowing shared chat for non-logged in users.
-        Has a feature, where users will have shared chat if they are not logged in. user_id = "anonymous"
-
-        In debug mode, accepts user_id from query params for testing purposes, allowing developers to simulate different users without needing authentication.
-        """
-        if debug:  # Temporary workaround for testing in debug mode, allowing user_id to be passed as a query parameter
-            query_user_id = request.query_params.get("user_id")
-            if query_user_id:
-                return query_user_id
-
-        user_id = getattr(request.state, "user_id", "anonymous")
-        return user_id
+        # Fallback to state (populated by JWT middleware if it ran first)
+        return scope["state"].get("user_id", "anonymous")
