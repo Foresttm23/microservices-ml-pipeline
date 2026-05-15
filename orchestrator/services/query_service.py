@@ -142,8 +142,9 @@ class QueryService(BaseService[QueryEntity, QueryRepository]):
                 await self.log_repo.save(log)
 
         # Persist the updated query entity state back to the database
+        query.interaction_id = result.interaction_id
         await self.repo.save(query)
-        logger.info("Result handled: query_id={} state={}", query.id, query.state)
+        logger.info("Result handled: query_id={} state={} interaction_id={}", query.id, query.state, query.interaction_id)
 
     async def get_user_chats(
         self, user_id: str, skip: int = 0, limit: int | None = None

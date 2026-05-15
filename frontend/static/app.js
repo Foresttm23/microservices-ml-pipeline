@@ -13,6 +13,7 @@ const GATEWAY_WS_URL = window.CONFIG.GATEWAY_WS_URL;
 let ws = null;
 let chats = [];
 let currentChatId = null;
+let historyAbortController = null;
 let lastActivity = Date.now();
 const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutes
 
@@ -62,7 +63,7 @@ function logToClean(data, role = 'assistant') {
 
     if (typeof data !== 'object' || data === null) {
         if (typeof data === 'string') {
-            data = { output: data };
+            data = {output: data};
         } else {
             return;
         }
@@ -93,7 +94,7 @@ function logToClean(data, role = 'assistant') {
 // Toast Notifications
 function showToast(title, message, type = 'info') {
     console.log(`[Toast] ${type.toUpperCase()}: ${title} - ${message}`);
-    
+
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -187,66 +188,101 @@ function handleApiError(response, data) {
 // Chat Helpers
 function createChat() {
     const id = Date.now().toString();
+    const interactionId = crypto.randomUUID();
     chats.unshift({
         id,
-        interactionId: null,
+        interactionId,
         title: `Chat ${chats.length + 1}`,
         cleanHtml: '<div class="empty-state">Waiting for results...</div>',
-        rawHtml: '<div class="terminal-line"><span class="prompt">></span> Ready...</div>'
+        rawHtml: '<div class="terminal-line"><span class="prompt">></span> Ready...</div>',
+        loaded: true // It's a new chat, nothing to load
     });
     switchChat(id);
     renderChatList();
 }
 
 async function switchChat(id) {
+    if (currentChatId === id) return;
+
+    // Save current chat state before switching
     if (currentChatId) {
         const oldChat = chats.find(c => c.id === currentChatId);
-        if (oldChat) {
+        // Only save if it's not in loading state to avoid saving empty/clearing DOM
+        if (oldChat && !oldChat.loading) {
             oldChat.cleanHtml = cleanOutput.innerHTML;
             oldChat.rawHtml = terminal.innerHTML;
         }
+    }
+
+    // Cancel any pending history requests
+    if (historyAbortController) {
+        historyAbortController.abort();
     }
 
     currentChatId = id;
     const newChat = chats.find(c => c.id === currentChatId);
     if (!newChat) return;
 
+    // If chat needs loading, fetch it
     if (newChat.interactionId && !newChat.loaded) {
-        cleanOutput.innerHTML = '';
-        terminal.innerHTML = '';
-        logToTerminal('Loading history...');
-        const data = await apiRequest('GET', `/chats/${newChat.interactionId}/messages`);
-        cleanOutput.innerHTML = '';
-        terminal.innerHTML = '';
-        if (data && data.items) {
-            data.items.forEach(msg => {
-                logToTerminal(`Prompt: ${msg.message}`);
-                logToClean({
-                    message: msg.message,
-                    created_at: msg.created_at,
-                    state: msg.state
-                }, 'user');
+        newChat.loading = true;
+        cleanOutput.innerHTML = '<div class="empty-state">Loading history...</div>';
+        terminal.innerHTML = '<div class="terminal-line"><span class="prompt">></span> Loading history...</div>';
 
-                if (msg.responses) {
-                    msg.responses.forEach(resp => {
-                        const payload = {
-                            status: msg.state,
-                            completed_at: resp.created_at,
-                            output: resp.content
-                        };
-                        logToClean(payload, 'assistant');
-                        logToTerminal(payload, 'success');
-                    });
-                }
-            });
-            newChat.loaded = true;
-            newChat.cleanHtml = cleanOutput.innerHTML || '<div class="empty-state">Waiting for results...</div>';
-            newChat.rawHtml = terminal.innerHTML || '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+        historyAbortController = new AbortController();
+        try {
+            const data = await apiRequest('GET', `/chats/${newChat.interactionId}/messages`, null, false, historyAbortController.signal);
+
+            // Re-verify that we are still on the same chat after async call
+            if (currentChatId !== id) return;
+
+            cleanOutput.innerHTML = '';
+            terminal.innerHTML = '';
+
+            if (data && data.items) {
+                data.items.forEach(msg => {
+                    logToTerminal(`Prompt: ${msg.message}`);
+                    logToClean({
+                        message: msg.message,
+                        created_at: msg.created_at,
+                        state: msg.state
+                    }, 'user');
+
+                    if (msg.responses) {
+                        msg.responses.forEach(resp => {
+                            const payload = {
+                                status: msg.state,
+                                completed_at: resp.created_at,
+                                output: resp.content
+                            };
+                            logToClean(payload, 'assistant');
+                            logToTerminal(payload, 'success');
+                        });
+                    }
+                });
+                newChat.loaded = true;
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('History load aborted for chat:', id);
+                return;
+            }
+            logToTerminal(`Failed to load history: ${error.message}`, 'error');
+        } finally {
+            newChat.loading = false;
+            // Only update saved HTML if we successfully loaded (or if it was already loaded)
+            if (newChat.loaded) {
+                newChat.cleanHtml = cleanOutput.innerHTML;
+                newChat.rawHtml = terminal.innerHTML;
+            }
         }
     }
 
-    cleanOutput.innerHTML = newChat.cleanHtml || '<div class="empty-state">Waiting for results...</div>';
-    terminal.innerHTML = newChat.rawHtml || '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+    // Restore DOM from saved state
+    if (currentChatId === id) {
+        cleanOutput.innerHTML = newChat.cleanHtml || '<div class="empty-state">Waiting for results...</div>';
+        terminal.innerHTML = newChat.rawHtml || '<div class="terminal-line"><span class="prompt">></span> Ready...</div>';
+    }
 
     renderChatList();
 }
@@ -291,7 +327,7 @@ document.getElementById('btnClearTerminal').addEventListener('click', () => {
 // Auth Helpers
 function getAuthHeaders() {
     const token = localStorage.getItem(TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    return token ? {'Authorization': `Bearer ${token}`} : {};
 }
 
 function updateStatus() {
@@ -318,7 +354,7 @@ function updateStatus() {
 }
 
 // API Wrapper
-async function apiRequest(method, endpoint, body = null, silent = false) {
+async function apiRequest(method, endpoint, body = null, silent = false, signal = null) {
     logToTerminal(`[${method}] ${endpoint}`);
     try {
         const headers = {
@@ -326,7 +362,7 @@ async function apiRequest(method, endpoint, body = null, silent = false) {
             ...getAuthHeaders()
         };
 
-        const options = { method, headers };
+        const options = {method, headers, signal};
         if (body) options.body = JSON.stringify(body);
 
         const response = await fetch(`${GATEWAY_URL}${endpoint}`, options);
@@ -422,7 +458,7 @@ document.getElementById('btnRefresh').addEventListener('click', async () => {
 document.getElementById('btnLogout').addEventListener('click', async () => {
     const refreshToken = localStorage.getItem(REFRESH_KEY);
     if (refreshToken) {
-        await apiRequest('POST', '/auth/logout', { refresh_token: refreshToken });
+        await apiRequest('POST', '/auth/logout', {refresh_token: refreshToken});
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -489,12 +525,17 @@ function connectWebSocket(userId) {
             const data = JSON.parse(event.data);
             logToTerminal(`[WS] Received Result:`, 'success');
             logToTerminal(data, 'success');
-            logToClean(data);
 
-            if (data.interaction_id && currentChatId) {
-                const currentChat = chats.find(c => c.id === currentChatId);
-                if (currentChat) {
-                    currentChat.interactionId = data.interaction_id;
+            const currentChat = chats.find(c => c.id === currentChatId);
+
+            // Strictly check that the message belongs to the current chat
+            if (currentChat && currentChat.interactionId === data.interaction_id) {
+                logToClean(data);
+            } else if (data.interaction_id) {
+                // Background update for the corresponding chat
+                const targetChat = chats.find(c => c.interactionId === data.interaction_id);
+                if (targetChat) {
+                    targetChat.loaded = false; // Mark as stale so it re-fetches history next time
                 }
             }
         } catch (e) {
