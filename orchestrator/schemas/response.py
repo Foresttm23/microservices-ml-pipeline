@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 from orchestrator.exceptions.domain_errors import (
     EmptyResponseContent,
@@ -74,9 +74,8 @@ class ResponseCreate(ResponseBase):
 class ResponseResponse(ResponseBase):
     """Schema for response records."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     query_id: UUID = Field(..., description="Reference to the query")
     created_at: datetime = Field(..., description="When the response was created")
     updated_at: datetime = Field(..., description="When the response was last updated")
-
-    class Config:
-        from_attributes = True

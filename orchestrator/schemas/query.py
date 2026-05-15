@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from orchestrator.exceptions.domain_errors import InvalidQueryStateTransition
 from orchestrator.schemas.log import LogResponse
@@ -87,6 +87,8 @@ class QueryUpdate(BaseSchema):
 class QueryResponse(QueryBase):
     """Schema for query responses with related data."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID = Field(..., description="Query ID")
     created_at: datetime = Field(..., description="When the query was created")
     updated_at: datetime = Field(..., description="When the query was last updated")
@@ -94,9 +96,6 @@ class QueryResponse(QueryBase):
         default_factory=list, description="Associated responses"
     )
     logs: List[LogResponse] = Field(default_factory=list, description="Associated logs")
-
-    class Config:
-        from_attributes = True
 
 
 class QueryDetailResponse(QueryResponse):
@@ -108,12 +107,11 @@ class QueryDetailResponse(QueryResponse):
 class QueryListResponse(BaseSchema):
     """Lightweight query response for list endpoints."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID = Field(..., description="Query ID")
     correlation_id: UUID = Field(..., description="Unique correlation ID")
     interaction_id: UUID = Field(..., description="Interaction session ID")
     message: str = Field(..., description="Query message content")
     state: QueryState = Field(..., description="Current state of the query")
     created_at: datetime = Field(..., description="When the query was created")
-
-    class Config:
-        from_attributes = True

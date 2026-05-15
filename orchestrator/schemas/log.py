@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 from orchestrator.exceptions.domain_errors import EmptyLogMessage, EmptyMetadataKey
 from shared.schemas import BaseDomainEntity, BaseSchema, CreatedAtMixin
@@ -98,9 +98,8 @@ class LogCreate(LogBase):
 class LogResponse(LogBase):
     """Schema for log responses."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID = Field(..., description="Log ID")
     query_id: UUID = Field(..., description="Reference to the query")
     created_at: datetime = Field(..., description="When the log was created")
-
-    class Config:
-        from_attributes = True
