@@ -33,55 +33,6 @@ class BaseService[TEntity: PydanticEntity, TRepo: BaseRepository](ABC):
         self.session = session
         self.repo = repo
 
-    @abstractmethod
     async def get_by_id(self, entity_id: Any) -> TEntity | None:
-        """
-        Retrieve a single entity by its unique identifier.
-
-        Returns:
-            The domain entity if found, otherwise None.
-        """
-        pass
-
-    @abstractmethod
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[TEntity]:
-        """
-        Retrieve a paginated collection of entities.
-        """
-        pass
-
-    @abstractmethod
-    async def create(self, entity: TEntity) -> TEntity:
-        """
-        Execute business validation and persist a new entity.
-
-        This method is responsible for:
-        - Validating domain rules.
-        - Calling the repository to save data.
-        - Committing the transaction if successful.
-
-        Raises:
-            ValueError: If domain validation fails.
-            Exception: If database persistence fails.
-        """
-        pass
-
-    @abstractmethod
-    async def update(self, entity_id: Any, entity: TEntity) -> TEntity | None:
-        """
-        Update an existing entity's state.
-
-        This method should verify existence, apply business rules,
-        and commit changes.
-        """
-        pass
-
-    @abstractmethod
-    async def delete(self, entity_id: Any) -> bool:
-        """
-        Remove an entity and handle associated cleanup.
-
-        Returns:
-            True if deletion was successful and committed, False if not found.
-        """
-        pass
+        """Fetch a single entity by its primary key."""
+        return await self.repo.get_by_id(entity_id)

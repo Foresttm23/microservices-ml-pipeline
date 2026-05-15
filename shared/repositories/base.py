@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase as OrmModel
-from sqlalchemy import select, func, Select
 
 from shared.schemas.base import BaseDomainEntity
 
@@ -72,7 +72,6 @@ class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
                 setattr(model, key, value)
         return model
 
-    @abstractmethod
     async def get_by_id(self, entity_id: Any) -> TEntity | None:
         """
         Fetch a single entity by its primary key.
@@ -80,33 +79,8 @@ class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
         Returns:
             The domain-validated entity or None if not found.
         """
-        pass
-
-    @abstractmethod
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[TEntity]:
-        """
-        Fetch a paginated list of entities.
-        """
-        pass
-
-    @abstractmethod
-    async def create(self, entity: TEntity) -> TEntity:
-        """
-        Persist a new domain entity.
-
-        Note: Changes are flushed to the session but not committed.
-        """
-        pass
-
-    @abstractmethod
-    async def update(self, entity_id: Any, entity: TEntity) -> TEntity | None:
-        """
-        Modify an existing entity by ID.
-
-        Returns:
-            The updated domain entity or None if the record does not exist.
-        """
-        pass
+        model = await self.session.get(self.model_class, entity_id)
+        return self.map_model_to_entity(model) if model else None
 
     async def save(self, entity: TEntity) -> TEntity:
         """
@@ -127,17 +101,9 @@ class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
         await self.session.flush()
         return self.map_model_to_entity(model)
 
-    @abstractmethod
-    async def delete(self, entity_id: Any) -> bool:
-        """
-        Remove an entity by ID.
-
-        Returns:
-            True if the record was removed, False if not found.
-        """
-        pass
-
-    async def _get_paginated(self, stmt: Select, skip: int, limit: int) -> tuple[list[TEntity], int]:
+    async def _get_paginated(
+        self, stmt: Select, skip: int, limit: int
+    ) -> tuple[list[TEntity], int]:
         """
         Helper method to execute a paginated query and return both the entities and total count.
         """
@@ -149,4 +115,3 @@ class BaseRepository[TModel: OrmModel, TEntity: BaseDomainEntity](ABC):
         result = await self.session.execute(paginated_stmt)
         items = [self.map_model_to_entity(model) for model in result.scalars().all()]
         return items, total
-
