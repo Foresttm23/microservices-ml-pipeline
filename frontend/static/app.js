@@ -43,23 +43,48 @@ tabBtns.forEach(btn => {
 });
 
 // Terminal Logger
-function logToTerminal(message, type = 'info') {
+function logToTerminal(message, type = 'info', targetChat = null) {
+    // If targetChat is provided, use it. Otherwise fallback to current active chat.
+    // If neither exists, we can't log.
+    const chat = targetChat || chats.find(c => c.id === currentChatId);
+    if (!chat) {
+        console.warn('logToTerminal called without valid chat context:', message);
+        return;
+    }
+
     const line = document.createElement('div');
     line.className = `terminal-line ${type}`;
 
     let text = message;
     if (typeof message === 'object') {
-        text = JSON.stringify(message, null, 2);
+        // Remove internal fields from display if it's a data object
+        const displayData = {...message};
+        delete displayData.interaction_id;
+        delete displayData.correlation_id;
+        text = JSON.stringify(displayData, null, 2);
     }
 
     line.innerHTML = `<span class="prompt">></span> <pre style="display:inline; margin:0; font-family:inherit;">${text}</pre>`;
-    terminal.appendChild(line);
-    terminal.scrollTop = terminal.scrollHeight;
+
+    // Update stored HTML (the background state)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = chat.rawHtml || '';
+    tempDiv.appendChild(line.cloneNode(true));
+    chat.rawHtml = tempDiv.innerHTML;
+
+    // Update DOM ONLY if this chat is the one currently being viewed
+    if (chat.id === currentChatId) {
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
 }
 
-function logToClean(data, role = 'assistant') {
-    const emptyState = cleanOutput.querySelector('.empty-state');
-    if (emptyState) emptyState.remove();
+function logToClean(data, role = 'assistant', targetChat = null) {
+    const chat = targetChat || chats.find(c => c.id === currentChatId);
+    if (!chat) {
+        console.warn('logToClean called without valid chat context:', data);
+        return;
+    }
 
     if (typeof data !== 'object' || data === null) {
         if (typeof data === 'string') {
@@ -87,8 +112,22 @@ function logToClean(data, role = 'assistant') {
     let contentHtml = `<div class="clean-content">${outputText || "..."}</div>`;
 
     msgDiv.innerHTML = metaHtml + contentHtml;
-    cleanOutput.appendChild(msgDiv);
-    cleanOutput.scrollTop = cleanOutput.scrollHeight;
+
+    // Update stored HTML (the background state)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = chat.cleanHtml || '';
+    const emptyState = tempDiv.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
+    tempDiv.appendChild(msgDiv.cloneNode(true));
+    chat.cleanHtml = tempDiv.innerHTML;
+
+    // Update DOM ONLY if this chat is the one currently being viewed
+    if (chat.id === currentChatId) {
+        const domEmptyState = cleanOutput.querySelector('.empty-state');
+        if (domEmptyState) domEmptyState.remove();
+        cleanOutput.appendChild(msgDiv);
+        cleanOutput.scrollTop = cleanOutput.scrollHeight;
+    }
 }
 
 // Toast Notifications
@@ -231,22 +270,25 @@ async function switchChat(id) {
 
         historyAbortController = new AbortController();
         try {
-            const data = await apiRequest('GET', `/chats/${newChat.interactionId}/messages`, null, false, historyAbortController.signal);
+            const data = await apiRequest('GET', `/chats/${newChat.interactionId}/messages`, null, false, historyAbortController.signal, newChat);
 
             // Re-verify that we are still on the same chat after async call
             if (currentChatId !== id) return;
 
             cleanOutput.innerHTML = '';
             terminal.innerHTML = '';
+            // Reset cached HTML to start fresh
+            newChat.cleanHtml = '';
+            newChat.rawHtml = '';
 
             if (data && data.items) {
                 data.items.forEach(msg => {
-                    logToTerminal(`Prompt: ${msg.message}`);
+                    logToTerminal(`Prompt: ${msg.message}`, 'info', newChat);
                     logToClean({
                         message: msg.message,
                         created_at: msg.created_at,
                         state: msg.state
-                    }, 'user');
+                    }, 'user', newChat);
 
                     if (msg.responses) {
                         msg.responses.forEach(resp => {
@@ -255,8 +297,8 @@ async function switchChat(id) {
                                 completed_at: resp.created_at,
                                 output: resp.content
                             };
-                            logToClean(payload, 'assistant');
-                            logToTerminal(payload, 'success');
+                            logToClean(payload, 'assistant', newChat);
+                            logToTerminal(payload, 'success', newChat);
                         });
                     }
                 });
@@ -267,14 +309,9 @@ async function switchChat(id) {
                 console.log('History load aborted for chat:', id);
                 return;
             }
-            logToTerminal(`Failed to load history: ${error.message}`, 'error');
+            logToTerminal(`Failed to load history: ${error.message}`, 'error', newChat);
         } finally {
             newChat.loading = false;
-            // Only update saved HTML if we successfully loaded (or if it was already loaded)
-            if (newChat.loaded) {
-                newChat.cleanHtml = cleanOutput.innerHTML;
-                newChat.rawHtml = terminal.innerHTML;
-            }
         }
     }
 
@@ -354,8 +391,8 @@ function updateStatus() {
 }
 
 // API Wrapper
-async function apiRequest(method, endpoint, body = null, silent = false, signal = null) {
-    logToTerminal(`[${method}] ${endpoint}`);
+async function apiRequest(method, endpoint, body = null, silent = false, signal = null, targetChat = null) {
+    logToTerminal(`[${method}] ${endpoint}`, 'info', targetChat);
     try {
         const headers = {
             'Content-Type': 'application/json',
@@ -380,18 +417,19 @@ async function apiRequest(method, endpoint, body = null, silent = false, signal 
         }
 
         if (!response.ok) {
-            logToTerminal(data, 'error');
+            logToTerminal(data, 'error', targetChat);
             handleApiError(response, data);
             return null;
         }
 
-        logToTerminal(data, 'success');
+        logToTerminal(data, 'success', targetChat);
         if (!silent) {
-            logToClean(data);
+            logToClean(data, 'assistant', targetChat);
         }
         return data;
     } catch (error) {
-        logToTerminal(`Network Error: ${error.message}`, 'error');
+        if (error.name === 'AbortError') throw error;
+        logToTerminal(`Network Error: ${error.message}`, 'error', targetChat);
         showToast("Network Error", "Unable to connect to the server. Please check your internet connection.", "error");
         return null;
     }
@@ -501,7 +539,7 @@ document.getElementById('btnRun').addEventListener('click', async () => {
         message: promptInput.value,
         client_id: localStorage.getItem(SESSION_KEY),
         interaction_id: currentChat ? currentChat.interactionId : null
-    });
+    }, false, null, currentChat);
 
     if (data) {
         showToast("Task Sent", "Your request has been submitted and is being processed.", "success");
@@ -523,23 +561,30 @@ function connectWebSocket(userId) {
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            logToTerminal(`[WS] Received Result:`, 'success');
-            logToTerminal(data, 'success');
 
-            const currentChat = chats.find(c => c.id === currentChatId);
+            // Normalize IDs for comparison
+            const incomingInteractionId = data.interaction_id ? data.interaction_id.toLowerCase() : null;
 
-            // Strictly check that the message belongs to the current chat
-            if (currentChat && currentChat.interactionId === data.interaction_id) {
-                logToClean(data);
-            } else if (data.interaction_id) {
-                // Background update for the corresponding chat
-                const targetChat = chats.find(c => c.interactionId === data.interaction_id);
-                if (targetChat) {
-                    targetChat.loaded = false; // Mark as stale so it re-fetches history next time
-                }
+            if (!incomingInteractionId) {
+                // If it's a system message without interaction_id, log to console but don't leak into chats
+                console.log('[WS] System Message:', data);
+                return;
+            }
+
+            // Find which chat this message belongs to
+            const targetChat = chats.find(c => c.interactionId && c.interactionId.toLowerCase() === incomingInteractionId);
+
+            if (targetChat) {
+                logToTerminal(`[WS] Received Result:`, 'success', targetChat);
+                logToTerminal(data, 'success', targetChat);
+                logToClean(data, 'assistant', targetChat);
+            } else {
+                // If it's a completely unknown interaction, log to console to prevent leakage
+                console.warn(`[WS] Received result for unknown chat (interaction_id: ${incomingInteractionId}). This might happen if a chat was deleted or if the ID is mismatching.`, data);
             }
         } catch (e) {
-            logToTerminal(`[WS] ${event.data}`, 'success');
+            // If it's not JSON, it might be a raw status message
+            console.log('[WS] Raw Message:', event.data);
         }
     };
 
@@ -577,4 +622,3 @@ setInterval(() => {
 
 // Initial Setup
 updateStatus();
-
