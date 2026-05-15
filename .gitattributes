@@ -1,0 +1,2 @@
+# Force LF for shell scripts to avoid "no such file or directory" error in Docker
+*.sh text eol=lf
