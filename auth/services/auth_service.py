@@ -38,24 +38,23 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         settings: AuthSettings | None = None,
     ):
         super().__init__(session=session, repo=user_repo)
-        self.user_repo = user_repo
         self.token_repo = token_repo or RefreshTokenRepository(session)
         self.settings = settings or get_settings()
 
     async def register_user(self, email: str, password: str) -> UserEntity:
-        existing = await self.user_repo.get_by_email(email)
+        existing = await self.repo.get_by_email(email)
         if existing:
             raise EmailAlreadyRegistered()
 
         hashed_password = password_hash.hash(password)
         user = UserEntity.create(email=email, hashed_password=hashed_password)
-        created = await self.user_repo.save(user)
+        created = await self.repo.save(user)
         await self.session.commit()
         logger.info("User registration complete")
         return created
 
     async def authenticate_user(self, email: str, password: str) -> UserEntity:
-        user = await self.user_repo.get_by_email(email)
+        user = await self.repo.get_by_email(email)
         if not user:
             raise InvalidCredentials()
         if not user.verify_password(password, password_hash):
@@ -131,28 +130,8 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         await self.session.commit()
         logger.info("Logout complete and lineage revoked")
 
-    async def create(self, entity: UserEntity) -> UserEntity:
-        created = await self.user_repo.save(entity)
-        await self.session.commit()
-        return created
-
-    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
-        existing = await self.user_repo.get_by_id(entity_id)
-        if not existing:
-            return None
-        updated = entity.model_copy(update={"id": entity_id})
-        saved = await self.user_repo.save(updated)
-        await self.session.commit()
-        return saved
-
-    async def delete(self, entity_id: UUID) -> bool:
-        deleted = await self.user_repo.delete(entity_id)
-        if deleted:
-            await self.session.commit()
-        return deleted
-
     async def get_user_profile(self, user_id: UUID) -> UserEntity | None:
-        return await self.user_repo.get_by_id(user_id)
+        return await self.get_by_id(user_id)
 
     def _decode_token(self, token: str) -> dict[str, object]:
         audience = self.settings.JWT_AUDIENCE
@@ -219,9 +198,3 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         if not isinstance(value, str):
             raise InvalidTokenClaims()
         return UUID(value)
-
-    async def get_by_id(self, entity_id: UUID) -> UserEntity | None:
-        return await self.user_repo.get_by_id(entity_id)
-
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[UserEntity]:
-        return await self.user_repo.get_all(skip=skip, limit=limit)
