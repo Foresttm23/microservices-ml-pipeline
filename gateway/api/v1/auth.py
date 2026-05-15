@@ -16,8 +16,6 @@ from shared.utils import proxy_request
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Default error mapping for Auth Service interactions - we only map true system failures.
-# 4xx errors should be passed through to the client as-is.
 AUTH_ERROR_MAP = {
     500: AuthProxyFailed,
     502: AuthProxyFailed,
