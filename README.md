@@ -9,7 +9,6 @@ An asynchronous, high-performance microservices system for ML-powered quiz gener
 
 ## 📋 Quick Links
 
-- **[WORKFLOW.md](./WORKFLOW.md)** — Complete end-to-end data flow, schemas, and service details
 - **[AGENTS.md](./AGENTS.md)** — Development guidelines and agent workflows
 
 Service-specific documentation:

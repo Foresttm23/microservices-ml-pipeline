@@ -356,7 +356,6 @@ echo $env:REDIS_PORT
 
 ## 📚 Related Documentation
 
-- **[WORKFLOW.md](../WORKFLOW.md)** — How services use shared schemas
 - **[ARCH_GUIDE.md](../ARCH_GUIDE.md)** — Architecture principles
 - **Service READMEs** — Gateway, Orchestrator, ML Worker
 
