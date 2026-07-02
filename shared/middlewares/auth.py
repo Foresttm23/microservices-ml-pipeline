@@ -8,6 +8,8 @@ from loguru import logger
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
+# TODO move JWTSettingsProtocol to protocols and decode_jwt_token to utils
+
 class JWTSettingsProtocol(Protocol):
     """Protocol defining required JWT configuration fields."""
 
@@ -19,6 +21,23 @@ class JWTSettingsProtocol(Protocol):
     JWT_USER_ID_CLAIM: str
     JWT_LEEWAY_SECONDS: int
     JWT_PUBLIC_PATHS: list[str]
+
+
+def decode_jwt_token(token: str, settings: JWTSettingsProtocol) -> dict[str, object]:
+    audience = settings.JWT_AUDIENCE
+    issuer = settings.JWT_ISSUER
+    leeway = float(settings.JWT_LEEWAY_SECONDS)
+    options = None if audience else cast(Any, {"verify_aud": False})
+
+    return jwt.decode(
+        token,
+        key=settings.JWT_SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        leeway=leeway,
+        issuer=issuer,
+        audience=audience,
+        options=options,
+    )
 
 
 class JWTAuthMiddleware:
@@ -51,7 +70,7 @@ class JWTAuthMiddleware:
 
         if token:
             try:
-                payload = self._decode_token(token)
+                payload = decode_jwt_token(token, self.settings)
                 user_id = payload.get(self.settings.JWT_USER_ID_CLAIM)
 
                 if user_id:
@@ -86,22 +105,6 @@ class JWTAuthMiddleware:
                 except UnicodeDecodeError:
                     return None
         return None
-
-    def _decode_token(self, token: str) -> dict[str, object]:
-        audience = self.settings.JWT_AUDIENCE
-        issuer = self.settings.JWT_ISSUER
-        leeway = float(self.settings.JWT_LEEWAY_SECONDS)
-        options = None if audience else cast(Any, {"verify_aud": False})
-
-        return jwt.decode(
-            token,
-            key=self.settings.JWT_SECRET_KEY,
-            algorithms=[self.settings.JWT_ALGORITHM],
-            leeway=leeway,
-            issuer=issuer,
-            audience=audience,
-            options=options,
-        )
 
     @staticmethod
     def _unauthorized(message: str) -> JSONResponse:

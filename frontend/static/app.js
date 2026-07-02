@@ -374,7 +374,7 @@ function updateStatus() {
             const payload = JSON.parse(atob(token.split('.')[1]));
             statusText.textContent = payload.sub || 'Authenticated';
             statusDot.classList.add('active');
-            connectWebSocket(payload.sub);
+            connectWebSocket();
             loadChats(); // Load history when authenticated
         } catch (e) {
             statusText.textContent = 'Invalid Token';
@@ -384,7 +384,7 @@ function updateStatus() {
     } else {
         statusText.textContent = 'Not Authenticated';
         statusDot.classList.remove('active');
-        connectWebSocket('anonymous'); // Connect as anonymous if needed
+        connectWebSocket(); // Connect as anonymous if needed
         chats = [];
         createChat(); // Blank chat for anonymous
     }
@@ -548,13 +548,15 @@ document.getElementById('btnRun').addEventListener('click', async () => {
 });
 
 // WebSocket Connection
-function connectWebSocket(userId) {
+function connectWebSocket() {
     if (ws) {
         ws.close();
     }
 
-    const wsUrl = `${GATEWAY_WS_URL}/ws/results/${userId}`;
-    logToTerminal(`Connecting WS: ${wsUrl}`);
+    const token = localStorage.getItem(TOKEN_KEY) || 'anonymous';
+    const wsUrl = `${GATEWAY_WS_URL}/ws/results/?token=${encodeURIComponent(token)}`;
+    const maskedUrl = `${GATEWAY_WS_URL}/ws/results/?token=***`;
+    logToTerminal(`Connecting WS: ${maskedUrl}`);
 
     ws = new WebSocket(wsUrl);
 
