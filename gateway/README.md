@@ -20,7 +20,7 @@ HTTP:
 
 WebSocket:
 
-- `GET /ws/results/{user_id}` - Subscribe to results for a user
+- `GET /ws/results/?token={jwt_token}` - Subscribe to results for a user (validates JWT and extracts user ID)
 
 ## Runtime Behavior (from `gateway/main.py`)
 
@@ -101,8 +101,8 @@ Auth proxy:
 
 WebSocket bridge:
 
-1. Client connects to `GET /ws/results/{user_id}`
-2. Gateway subscribes to Redis `results:{user_id}`
+1. Client connects to `GET /ws/results/?token={jwt_token}`
+2. Gateway validates the JWT, extracts `user_id` from the payload, and subscribes to Redis `results:{user_id}`
 3. Messages are forwarded to the WebSocket client
 
 ## Notes
