@@ -81,8 +81,7 @@ class AuthService(BaseService[UserEntity, UserRepository]):
 
     async def rotate_refresh_token(self, refresh_token: str) -> TokenPairResponse:
         payload = self._decode_token(refresh_token)
-        if payload.get("token_type") != "refresh":
-            raise InvalidRefreshToken()
+        self._assert_refresh_token_type(payload)
 
         jti = self._require_uuid_claim(payload, "jti")
         user_id = self._require_uuid_claim(payload, "sub")
@@ -120,8 +119,7 @@ class AuthService(BaseService[UserEntity, UserRepository]):
 
     async def logout(self, refresh_token: str) -> None:
         payload = self._decode_token(refresh_token)
-        if payload.get("token_type") != "refresh":
-            raise InvalidRefreshToken()
+        self._assert_refresh_token_type(payload)
 
         jti = self._require_uuid_claim(payload, "jti")
 
@@ -198,3 +196,8 @@ class AuthService(BaseService[UserEntity, UserRepository]):
         if not isinstance(value, str):
             raise InvalidTokenClaims()
         return UUID(value)
+
+    @staticmethod
+    def _assert_refresh_token_type(payload: dict[str, object]) -> None:
+        if payload.get("token_type") != "refresh":
+            raise InvalidRefreshToken()
