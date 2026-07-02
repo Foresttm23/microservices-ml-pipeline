@@ -34,22 +34,17 @@ async def results_socket(websocket: WebSocket, token: str = Query("anonymous")) 
 
 
 async def validate_jwt(token: str, settings: JWTSettingsProtocol, websocket: WebSocket) -> str | None:
-    user_id = "anonymous"
+    if token == "anonymous":
+        return "anonymous"
 
-    if settings.JWT_ENABLED or token != "anonymous":
-        if token == "anonymous":
-            logger.warning("WebSocket rejected: JWT is enabled but token was not provided")
-            await websocket.accept()
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return None
-
+    if settings.JWT_ENABLED:
         try:
             payload = decode_jwt_token(token, settings)
-            user_id = str(payload[settings.JWT_USER_ID_CLAIM])
+            return str(payload[settings.JWT_USER_ID_CLAIM])
         except Exception as exc:
             logger.warning("WebSocket JWT validation failed: {}", exc)
             await websocket.accept()
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return None
 
-    return user_id
+    return token
