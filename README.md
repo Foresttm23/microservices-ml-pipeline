@@ -31,36 +31,41 @@ A **5-service microservices architecture** with dedicated Auth and ML processing
 │        React Dashboard for Submission & Visualization           │
 └──────┬─────────────────────────────────────────────▲────────────┘
        │                                             │
-       │ 1. Login/Request                            │ 6. WS Result
+       │ 1. Request                                  │ 6. WS Result
        ▼                                             │
-┌──────────────┐         ┌───────────────────────────┴────────────┐
-│   GATEWAY    │────────▶│       AUTH SERVICE (Port 8082)         │
-│ (Port 8081)  │◀────────│   - JWT Issuance & Token Rotation      │
-│ - Edge Proxy │ 2. Auth │   - User Identity Management           │
-│ - WS Bridge  │   Check └─────────────┬──────────────────────────┘
-└──────┬───────┘                       │
+┌──────────────┐                                     │
+│   GATEWAY    │─────────────────────────────────────┘
+│ (Port 8081)  │────────▶┌────────────────────────────────────────┐
+│ - Edge Proxy │◀────────│       AUTH SERVICE (Port 8082)         │
+│ - WS Bridge  │ 2. Auth │   - JWT Issuance & Token Rotation      │
+└──────┬───────┘  Check  │   - User Identity Management           │
+       │                 └─────────────┬──────────────────────────┘
        │                               ▼
-       │ 3. Forward        ┌──────────────────────────┐
-       │    Request        │     AUTH DB (Postgres)   │
-       ▼                   └──────────────────────────┘
+       │ 3. Forward              ┌──────────────────────────┐
+       │    Request              │     AUTH DB (Postgres)   │
+       ▼                         └──────────────────────────┘
 ┌──────────────────────────┐
-│ ORCHESTRATOR (Port 8083) │◀────────────────┐
-│ - Task Logic & State     │                 │
-│ - Result Consumption     │        4. Save  │
-└──────┬─────────────┬─────┘           State │
-       │             │                       ▼
-       │             │             ┌──────────────────────────┐
-       │             │             │ ORCHESTRATOR DB (PG)     │
-       │             │             └──────────────────────────┘
-       │             │
-       ▼             ▼
-  ┌─────────┐   ┌────────────┐     ┌──────────────────────────┐
-  │  REDIS  │──▶│ ML WORKER  │────▶│    GOOGLE GEMINI API     │
-  │ (Queues)│◀──│(Port 8084) │◀────│   (Inference Engine)     │
-  └─────────┘   └────────────┘     └──────────────────────────┘
-       │               │
-       │ 5. Results    │
-       └───────────────┘
+│ ORCHESTRATOR (Port 8083) │◀──────────────────────────────┐
+│ - Task Logic & State     │                               │
+│ - Result Consumption     │────────┐                      │ 5. Results
+└──────┬───────────────────┘        │                      │
+       │                            ▼                      │
+       │ 4. Enqueue         ┌──────────────────────────┐   │
+       │    Task            │   ORCHESTRATOR DB (PG)   │   │
+       ▼                    └──────────────────────────┘   │
+┌──────────────┐                                           │
+│    REDIS     │───────────────────────────────────────────┘
+│ (Queues/Pub) │◀──────────────┐
+└──────┬───────┘               │
+       │                       │
+       │ Dequeue               │ Results
+       ▼                       │
+┌──────────────┐               │
+│  ML WORKER   │───────────────┘
+│ (Port 8084)  │──────▶┌──────────────────────────┐
+└──────────────┘       │    GOOGLE GEMINI API     │
+                       │   (Inference Engine)     │
+                       └──────────────────────────┘
 ```
 
 **Workflow Summary:**
@@ -68,9 +73,9 @@ A **5-service microservices architecture** with dedicated Auth and ML processing
 1. **Frontend** sends requests through the **Gateway**.
 2. **Gateway** validates identity with the **Auth Service** (backed by its own DB).
 3. **Gateway** proxies valid requests to the **Orchestrator**.
-4. **Orchestrator** saves task state to **Orchestrator DB** and enqueues to **Redis**.
-5. **ML Worker** processes tasks via **Gemini API** and returns results to **Redis**.
-6. **Gateway** (via WebSocket) pushes the final result back to the **Frontend**.
+4. **Orchestrator** saves task state to **Orchestrator DB** and enqueues the task to **Redis**.
+5. **ML Worker** processes tasks via **Gemini API** and returns results to **Redis**, which are then consumed by the **Orchestrator**.
+6. **Gateway** (via WebSocket) retrieves the results from **Redis Pub/Sub** and pushes them back to the **Frontend**.
 
 ---
 
