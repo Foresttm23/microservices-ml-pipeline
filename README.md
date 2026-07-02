@@ -1,6 +1,8 @@
-# 🚀 ML Microservices Quiz Pipeline
+# 🚀 ML Microservices Chat Pipeline
 
-An asynchronous, high-performance microservices system for ML-powered quiz generation and real-time result delivery.
+This project was built to explore and understand the internals of modern, high-performance asynchronous AI chat pipelines. With AI chat interfaces becoming mainstream, designing and implementing this architecture from scratch provides deep insights into microservices coordination, asynchronous task queues, real-time WebSocket communication, and distributed state management. This implementation serves as a robust, production-ready blueprint that can easily be expanded into a full-scale, feature-rich chat system if needed.
+
+The system is an asynchronous, high-performance microservices architecture for ML-powered chat processing and real-time result delivery.
 
 **Status:** ✅ End-to-end pipeline fully operational  
 **Last Updated:** May 2026
@@ -244,24 +246,6 @@ uv run pytest orchestrator/tests
 uv run pytest gateway/tests
 uv run pytest ml_worker/tests
 ```
-
----
-
-## 🛣️ Roadmap
-
-### ✅ Completed (May 2026)
-
-- ✅ **Full End-to-End Pipeline**: HTTP -> Queue -> ML -> DB -> WebSocket.
-- ✅ **DDD Orchestrator**: Clean layering with repositories and services.
-- ✅ **JWT Authentication**: Secure endpoints and token rotation.
-- ✅ **WebSocket Bridging**: Real-time delivery via Redis Pub/Sub.
-- ✅ **Shared Library**: Unified messaging and logging abstractions.
-
-### 🔮 Next Steps
-
-1. **Resilience**: Implement Dead Letter Queues (DLQ) and exponential backoff retries.
-2. **Observability**: Add Prometheus metrics and OpenTelemetry tracing.
-3. **Advanced ML**: Support for multi-model fallback and streaming inference.
 
 ---
 
