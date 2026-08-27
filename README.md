@@ -5,7 +5,7 @@ This project was built to explore and understand the internals of modern, high-p
 The system is an asynchronous, high-performance microservices architecture for ML-powered chat processing and real-time result delivery.
 
 **Status:** ✅ End-to-end pipeline fully operational  
-**Last Updated:** May 2026
+**Last Updated:** August 2026
 
 ---
 
