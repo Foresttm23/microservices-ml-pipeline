@@ -33,7 +33,7 @@ class InvalidTokenClaims(AuthServiceError):
     """Raised when a token is missing required claims."""
 
 
-AUTH_ERROR_MAP = {
+AUTH_ERROR_MAP: dict[type[Exception], ErrorDefinition] = {
     EmailAlreadyRegistered: ErrorDefinition(
         code="auth_email_exists",
         status_code=400,

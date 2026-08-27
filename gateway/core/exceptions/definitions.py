@@ -6,7 +6,7 @@ from gateway.core.exceptions.gateway_errors import (
     WebSocketBridgeFailed,
 )
 
-GATEWAY_ERROR_MAP = {
+GATEWAY_ERROR_MAP: dict[type[Exception], ErrorDefinition] = {
     AuthProxyFailed: ErrorDefinition(
         code="gateway_auth_proxy_failed",
         status_code=502,

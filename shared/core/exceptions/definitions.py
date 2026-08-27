@@ -10,7 +10,7 @@ from shared.core.exceptions.system import (
     SessionNotInitializedException,
 )
 
-GENERAL_ERROR_MAP = {
+GENERAL_ERROR_MAP: dict[type[Exception], ErrorDefinition] = {
     BadRequestException: ErrorDefinition(
         code="bad_request",
         status_code=400,
@@ -29,7 +29,7 @@ GENERAL_ERROR_MAP = {
 }
 
 
-SYSTEM_ERROR_MAP = {
+SYSTEM_ERROR_MAP: dict[type[Exception], ErrorDefinition] = {
     MissingHeaderException: ErrorDefinition(
         code="sys_missing_header",
         status_code=400,

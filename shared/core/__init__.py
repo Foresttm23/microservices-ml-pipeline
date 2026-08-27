@@ -5,6 +5,7 @@ from shared.core.config import (
     get_shared_settings,
 )
 from shared.core.enums import QueryState
+from shared.core.protocols import ModelSettingsProtocol
 
 __all__ = [
     "SharedSettings",
@@ -12,4 +13,6 @@ __all__ = [
     "CORRELATION_ID_HEADER",
     "USER_ID_HEADER",
     "QueryState",
+    "ModelSettingsProtocol",
 ]
+

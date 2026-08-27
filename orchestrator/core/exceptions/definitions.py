@@ -13,7 +13,7 @@ from orchestrator.exceptions.orchestrator_errors import (
 )
 from shared.core.exceptions import ErrorDefinition
 
-ORCHESTRATOR_ERROR_MAP = {
+ORCHESTRATOR_ERROR_MAP: dict[type[Exception], ErrorDefinition] = {
     TaskEnqueueFailed: ErrorDefinition(
         code="orchestrator_enqueue_failed",
         status_code=503,
