@@ -60,7 +60,7 @@ class VectorStoreService:
 
         self._collection = self._client.get_or_create_collection(
             name=self.collection_name,
-            embedding_function=self._embedding_function,
+            embedding_function=cast(Any, self._embedding_function),
             metadata={"hnsw:space": "cosine"},
         )
         self._seed_sample_documents()
