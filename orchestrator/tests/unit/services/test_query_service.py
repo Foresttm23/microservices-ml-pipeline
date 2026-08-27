@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from orchestrator.services.query_service import QueryService
 from orchestrator.exceptions.orchestrator_errors import TaskEnqueueFailed

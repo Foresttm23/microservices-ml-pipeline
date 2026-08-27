@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 from ml_worker.worker.runner import InferenceRunner
 from ml_worker.schemas.text_generator import GenerationResult

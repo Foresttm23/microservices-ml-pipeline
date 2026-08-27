@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4, UUID
 from ml_worker.core.exceptions.task_wrapper import task_wrapper
 from shared.core import QueryState

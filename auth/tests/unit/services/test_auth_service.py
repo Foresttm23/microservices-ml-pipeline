@@ -1,14 +1,11 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-from datetime import datetime, timezone, timedelta
 
 from auth.services.auth_service import AuthService
 from auth.exceptions.auth_errors import (
     EmailAlreadyRegistered,
     InvalidCredentials,
-    RefreshTokenNotFound,
-    RefreshTokenRevoked,
     RefreshTokenExpired,
 )
 from auth.schemas.user import UserEntity

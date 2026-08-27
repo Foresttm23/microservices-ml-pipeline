@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import AsyncMock
-from uuid import uuid4
 from pydantic import BaseModel
 from shared.services.base import BaseService
 from shared.repositories.base import BaseRepository

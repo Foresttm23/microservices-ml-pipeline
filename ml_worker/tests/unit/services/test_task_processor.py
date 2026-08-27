@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from ml_worker.services.task_processor import TaskProcessor
 from shared.schemas import TaskMessage, ResultMessage
 from shared.core import QueryState
