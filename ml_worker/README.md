@@ -1,71 +1,95 @@
 # ML Worker Service
 
-Async worker that consumes `task_queue`, runs inference (Gemini or mock), and publishes results to `result_queue`.
-There is no HTTP API; the worker runs indefinitely.
+Asynchronous inference worker powered by **LangGraph** and **ChromaDB RAG**. It consumes task requests from Redis `task_queue`, executes an agentic state-machine retrieval-augmented generation workflow, and publishes `ResultMessage` payloads to `result_queue`.
 
-## Core Responsibilities
+---
 
-- Consume task messages from Redis
-- Execute inference (real or dry-run)
-- Publish `ResultMessage` back to Redis
+## 🧠 Core Architecture & Workflow
 
-## Runtime Behavior (from `ml_worker/main.py`)
+The worker executes a multi-node **LangGraph `StateGraph`** with built-in semantic query routing:
 
-- Initializes logging and settings
-- Chooses generator:
-    - `MockTextGenerator` when `ML_WORKER_DRY_RUN=true`
-    - `GeminiTextGenerator` otherwise
-- Builds `InferenceRunner` and `TaskProcessor`
-- Starts a `QueueConsumer` loop on `task_queue`
-
-## Configuration
-
-These are read by `ml_worker/core/config.py`. Defaults below reflect `ml_worker/.env` (Docker Compose).
-
-Inference:
-
-- `GEMINI_API_KEY` (optional when `ML_WORKER_DRY_RUN=true`)
-- `GEMINI_MODEL` (default: gemini-2.5-flash-lite)
-- `GEMINI_API_BASE` (default: https://generativelanguage.googleapis.com/v1)
-- `GEMINI_TIMEOUT_SECONDS` (default: 30)
-- `ML_WORKER_DRY_RUN` (default: false)
-
-Redis:
-
-- `REDIS_HOST` (default: redis)
-- `REDIS_PORT` (default: 6379)
-- `REDIS_URL` (default: redis://redis:6379/0)
-
-Notes:
-
-- `ml_worker/start.sh` expects `REDIS_HOST` and `REDIS_PORT` for its readiness check.
-
-## Running The Service
-
-Docker Compose:
-
-```powershell
-docker compose up ml_worker
+```
+                      ┌─────────────────┐
+                      │   User Query    │
+                      └────────┬────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │ 1. route_query  │
+                      └────────┬────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+       [route == 'retrieve']         [route == 'direct_chat']
+                │                             │
+                ▼                             ▼
+       ┌─────────────────┐           ┌─────────────────┐
+       │   2. retrieve   │           │ 4. direct_chat  │
+       │   (ChromaDB)    │           │ (General Gemini)│
+       └────────┬────────┘           └────────┬────────┘
+                │                             │
+                ▼                             │
+       ┌─────────────────────────┐            │
+       │ 3. generate_grounded_   │            │
+       │         answer          │            │
+       └────────┬────────────────┘            │
+                │                             │
+                └──────────────┬──────────────┘
+                               │
+                               ▼
+                      ┌─────────────────┐
+                      │   ResultMessage │
+                      │ (to Redis Queue)│
+                      └─────────────────┘
 ```
 
-Local development:
+### LangGraph Nodes
+1. **`route_query`**: Analyzes the query intent using structured classification to decide whether to query knowledge documents (`retrieve`) or perform casual conversation (`direct_chat`).
+2. **`retrieve`**: Searches local **ChromaDB** using ONNX-based `all-MiniLM-L6-v2` embeddings for relevant knowledge base documents.
+3. **`generate_grounded_answer`**: Synthesizes an accurate, citation-backed answer grounded strictly in the retrieved context using Google Gemini.
+4. **`direct_chat`**: Direct conversational LLM response for greetings and general questions.
 
+---
+
+## 🗄️ Knowledge Base & Vector Store
+- **Vector DB**: ChromaDB with cosine similarity search.
+- **Embeddings**: Local in-process `all-MiniLM-L6-v2` ONNX embeddings (no external embedding API dependency, zero-cost, <10ms latency).
+- **Knowledge Sources**: Automatically loaded from `ml_worker/knowledge/` (e.g. `about_creator.md`).
+
+---
+
+## ⚙️ Configuration
+
+Settings are managed via `ml_worker/core/config.py` conforming to `ModelSettingsProtocol`.
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `API_KEY` | Google Gemini API Key | `None` (triggers dry-run) |
+| `MODEL` | Model name / ID | `gemini-2.0-flash` |
+| `API_BASE` | Gemini API Base URL | `https://generativelanguage.googleapis.com/v1beta` |
+| `TIMEOUT_SECONDS` | HTTP request timeout | `30.0` |
+| `ML_WORKER_DRY_RUN`| Force mock execution without API calls | `false` |
+| `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
+
+---
+
+## 🚀 Running The Service
+
+### Via Docker Compose (Recommended)
 ```powershell
-$env:GEMINI_API_KEY = "your-api-key"
-$env:ML_WORKER_DRY_RUN = "false"
+docker compose up --build ml_worker
+```
+
+### Local Development
+```powershell
+$env:API_KEY = "your-gemini-api-key"
+$env:MODEL = "gemini-2.0-flash"
 $env:REDIS_URL = "redis://localhost:6379/0"
 uv run python -m ml_worker.main
 ```
 
-Dry-run mode (no external API calls):
-
+### Dry-run Mode (No API calls)
 ```powershell
 $env:ML_WORKER_DRY_RUN = "true"
 uv run python -m ml_worker.main
 ```
-
-## Message Flow
-
-1. `QueueConsumer` blocks on `task_queue`
-2. `TaskProcessor` invokes the inference runner
-3. Result is serialized and published to `result_queue`

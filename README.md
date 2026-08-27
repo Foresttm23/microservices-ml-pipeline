@@ -65,9 +65,11 @@ A **5-service microservices architecture** with dedicated Auth and ML processing
 ┌──────────────┐               │
 │  ML WORKER   │───────────────┘
 │ (Port 8084)  │──────▶┌──────────────────────────┐
-└──────────────┘       │    GOOGLE GEMINI API     │
-                       │   (Inference Engine)     │
-                       └──────────────────────────┘
+│ - LangGraph  │       │    GOOGLE GEMINI API     │
+│   Workflow   │       │   (Inference Engine)     │
+│ - ChromaDB   │       └──────────────────────────┘
+│   RAG Search │
+└──────────────┘
 ```
 
 **Workflow Summary:**
@@ -76,27 +78,40 @@ A **5-service microservices architecture** with dedicated Auth and ML processing
 2. **Gateway** validates identity with the **Auth Service** (backed by its own DB).
 3. **Gateway** proxies valid requests to the **Orchestrator**.
 4. **Orchestrator** saves task state to **Orchestrator DB** and enqueues the task to **Redis**.
-5. **ML Worker** processes tasks via **Gemini API** and returns results to **Redis**, which are then consumed by the **Orchestrator**.
-6. **Gateway** (via WebSocket) retrieves the results from **Redis Pub/Sub** and pushes them back to the **Frontend**.
+5. **ML Worker** consumes the task, executes a **LangGraph StateGraph** with semantic query routing, queries **ChromaDB** for knowledge context, and synthesizes grounded answers with **Google Gemini**.
+6. **ML Worker** returns results to **Redis**, which are consumed by the **Orchestrator**.
+7. **Gateway** (via WebSocket) retrieves the results from **Redis Pub/Sub** and streams them live to the **Frontend**.
+
+---
+
+## 🧠 Agentic RAG & LangGraph Architecture
+
+The ML Worker uses **LangGraph** to execute a stateful, decision-driven RAG pipeline:
+- **Semantic Query Routing (`route_query`)**: Classifies whether a prompt requires knowledge retrieval (`retrieve`) or general conversation (`direct_chat`).
+- **In-Process Vector Store (`retrieve`)**: Performs cosine similarity search over local **ChromaDB** collections using embedded `all-MiniLM-L6-v2` ONNX models (zero external embedding API overhead).
+- **Grounded Answer Synthesis (`generate_grounded_answer`)**: Augments prompts with retrieved context chunks, cites source documents, and invokes Google Gemini.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Component        | Technology              | Version                                |
-|------------------|-------------------------|----------------------------------------|
-| Frontend         | HTML/JS (Vanilla/React) | Modern                                 |
-| Web Framework    | FastAPI                 | 0.100+                                 |
-| Message Broker   | Redis                   | 7 (Alpine)                             |
-| Database         | PostgreSQL              | 16 (Alpine) + SQLAlchemy 2.0 + Alembic |
-| ML Model         | Google Gemini API       | 2.0-flash                              |
-| Task Processing  | Python asyncio          | 3.13+                                  |
-| Package Manager  | uv                      | Latest                                 |
-| Containerization | Docker & Docker Compose | Latest                                 |
+| Component        | Technology                          | Version                                |
+|------------------|-------------------------------------|----------------------------------------|
+| Frontend         | HTML/JS (Vanilla/React)             | Modern                                 |
+| Web Framework    | FastAPI                             | 0.100+                                 |
+| Agent Framework  | LangGraph & LangChain               | 1.2+ / Core 1.6+                       |
+| Vector Database  | ChromaDB (all-MiniLM-L6-v2 ONNX)    | 1.5+                                   |
+| Message Broker   | Redis                               | 7 (Alpine)                             |
+| Database         | PostgreSQL                          | 16 (Alpine) + SQLAlchemy 2.0 + Alembic |
+| ML Model         | Google Gemini API                   | 2.0-flash / 2.5-flash                  |
+| Task Processing  | Python asyncio                      | 3.13+                                  |
+| Package Manager  | uv                                  | Latest                                 |
+| Containerization | Docker & Docker Compose             | Latest                                 |
 
 ---
 
 ## 🚀 Getting Started
+
 
 ### Prerequisites
 
