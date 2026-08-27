@@ -2,15 +2,12 @@ import asyncio
 
 from loguru import logger
 
-from ml_worker.core.config import GeminiSettings, get_gemini_settings
-from ml_worker.core.loader import GeminiModelLoader
-from ml_worker.infra.gemini_adapter import (
-    GeminiTextGenerator,
-    MockTextGenerator,
-    TextGenerator,
-)
+from shared.core import ModelSettingsProtocol
+from ml_worker.core.config import get_gemini_settings
+from ml_worker.infra.vector_store import get_vector_store
+from ml_worker.services.rag_graph import RagGraphService
 from ml_worker.services.task_processor import TaskProcessor
-from ml_worker.worker.runner import InferenceRunner, Runner
+from ml_worker.worker.runner import LangGraphRunner, Runner
 from shared.core.logging import setup_logging
 from shared.messaging import (
     Processor,
@@ -29,7 +26,7 @@ def _init_processor(
     result_queue: RedisQueue,
 ) -> Processor[TaskMessage, ResultMessage]:
     """
-    Initialize the task processor with an inference runner and result publisher.
+    Initialize the task processor with a runner and result publisher.
     """
     publisher = QueuePublisher(result_queue)
     task_processor = TaskProcessor(runner=runner, publisher=publisher)
@@ -37,30 +34,24 @@ def _init_processor(
     return task_processor
 
 
-def _init_generator(
-    settings: GeminiSettings,
-) -> TextGenerator:
+def _init_runner(settings: ModelSettingsProtocol) -> Runner:
     """
-    Strategy Pattern: Returns a real or mock generator based on settings.py.
+    Initializes the VectorStore, LangGraph StateGraph workflow, and LangGraphRunner.
     """
-    if settings.ML_WORKER_DRY_RUN:
-        logger.warning("Initializing ML Worker in DRY_RUN mode")
-        return MockTextGenerator()
-
-    return GeminiTextGenerator(settings)
+    vector_store = get_vector_store(settings)
+    rag_graph = RagGraphService(settings=settings, vector_store=vector_store)
+    return LangGraphRunner(rag_graph=rag_graph, model_name=settings.MODEL)
 
 
 async def main():
     setup_logging()
 
-    logger.info("Starting ML Worker service")
+    logger.info("Starting ML Worker service with LangGraph & ChromaDB RAG")
 
     settings = get_gemini_settings()
 
-    # Initialize model loader and runner
-    generator = _init_generator(settings)
-    loader = GeminiModelLoader(settings, generator)
-    runner = InferenceRunner(loader=loader)
+    # Initialize LangGraph & ChromaDB runner
+    runner = _init_runner(settings)
 
     # Initialize Redis client and queues
     task_queue = get_task_queue()

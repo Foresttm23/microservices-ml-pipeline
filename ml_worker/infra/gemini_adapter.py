@@ -30,15 +30,16 @@ class GeminiTextGenerator(TextGenerator):
     def __init__(self, settings: GeminiSettings):
         self._settings = settings
 
-        if not self._settings.GEMINI_API_KEY:
+        if not self._settings.API_KEY:
             raise ModelInitializationFailed(
-                "GEMINI_API_KEY is required unless ML_WORKER_DRY_RUN=true"
+                "API_KEY is required unless ML_WORKER_DRY_RUN=true"
             )
 
     async def generate(self, prompt: str, interaction_id: UUID) -> GenerationResult:
-        model = self._settings.GEMINI_MODEL
+        model = self._settings.MODEL
 
-        endpoint = self._get_gemini_endpoint(self._settings.GEMINI_API_BASE, model)
+        endpoint = self._get_gemini_endpoint(self._settings.API_BASE, model)
+
 
         redis_client = get_redis_client()
         redis_key = f"interaction:{interaction_id}:history"
@@ -105,10 +106,10 @@ class GeminiTextGenerator(TextGenerator):
     async def _execute_request(
         self, endpoint: str, payload: dict[str, Any], headers: dict[str, str]
     ) -> Response:
-        async with AsyncClient(timeout=self._settings.GEMINI_TIMEOUT_SECONDS) as client:
+        async with AsyncClient(timeout=self._settings.TIMEOUT_SECONDS) as client:
             response = await client.post(
                 endpoint,
-                params={"key": self._settings.GEMINI_API_KEY},
+                params={"key": self._settings.API_KEY},
                 json=payload,
                 headers=headers,
             )

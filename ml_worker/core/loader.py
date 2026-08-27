@@ -17,6 +17,7 @@ class GeminiModelLoader(ModelLoader):
         self._settings = settings
         self._generator = generator
 
+
     async def generate_text(
         self,
         prompt: str,
