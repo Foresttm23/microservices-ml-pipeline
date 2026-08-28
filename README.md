@@ -1,4 +1,4 @@
-# 🚀 ML Microservices Chat Pipeline
+# 🚀 Event-Driven ML Microservices & RAG Pipeline
 
 This project was built to explore and understand the internals of modern, high-performance asynchronous AI chat pipelines. With AI chat interfaces becoming mainstream, designing and implementing this architecture from scratch provides deep insights into microservices coordination, asynchronous task queues, real-time WebSocket communication, and distributed state management. This implementation serves as a robust, production-ready blueprint that can easily be expanded into a full-scale, feature-rich chat system if needed.
 
