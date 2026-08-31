@@ -1,6 +1,8 @@
 # 🚀 Event-Driven ML Microservices & RAG Pipeline
 
-This project was built to explore and understand the internals of modern, high-performance asynchronous AI chat pipelines. With AI chat interfaces becoming mainstream, designing and implementing this architecture from scratch provides deep insights into microservices coordination, asynchronous task queues, real-time WebSocket communication, and distributed state management. This implementation serves as a robust, production-ready blueprint that can easily be expanded into a full-scale, feature-rich chat system if needed.
+An asynchronous, event-driven microservices architecture designed to decouple heavy ML/LLM inference pipelines from user-facing APIs. 
+
+This reference implementation demonstrates how to eliminate HTTP timeouts and isolate compute-heavy workflows using FastAPI, Redis task queues, PostgreSQL state orchestration, and real-time WebSocket streaming.
 
 The system is an asynchronous, high-performance microservices architecture for ML-powered chat processing and real-time result delivery.
 
@@ -10,8 +12,6 @@ The system is an asynchronous, high-performance microservices architecture for M
 ---
 
 ## 📋 Quick Links
-
-- **[AGENTS.md](./AGENTS.md)** — Development guidelines and agent workflows
 
 Service-specific documentation:
 
@@ -123,7 +123,7 @@ The ML Worker uses **LangGraph** to execute a stateful, decision-driven RAG pipe
 
 ```powershell
 # Clone and navigate to project
-cd Coursework-ML-Microservices
+cd microservices-ml-pipeline
 
 # Create .env from sample
 copy .env.sample .env
@@ -215,7 +215,7 @@ uv run python -m ml_worker.main
 ## 📁 Project Structure
 
 ```
-Coursework-ML-Microservices/
+microservices-ml-pipeline/
 ├── gateway/                   # HTTP API & WebSocket bridge
 │   ├── api/v1/                # Routes (query, websocket, auth)
 │   ├── core/                  # Lifespan, Config, HTTPX client
