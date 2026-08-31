@@ -16,6 +16,7 @@ class GeminiSettings(BaseSettings):
     MODEL: str = "gemini-2.0-flash"
     API_BASE: str = "https://generativelanguage.googleapis.com/v1beta"
     TIMEOUT_SECONDS: float = 30.0
+    MAX_RETRIES: int = 3
     ML_WORKER_DRY_RUN: bool = False
 
     # Redis

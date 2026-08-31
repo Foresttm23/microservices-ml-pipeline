@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import RetryPolicy
 
 from shared.core import ModelSettingsProtocol
 from ml_worker.infra.vector_store import VectorStoreService
@@ -23,11 +24,13 @@ class RagGraphService:
     def _init_llm(self, settings: ModelSettingsProtocol) -> Any:
         """Initializes the chat LLM or returns None for dry-run."""
         if settings.API_KEY and not settings.ML_WORKER_DRY_RUN:
+            max_retries = getattr(settings, "MAX_RETRIES", 3)
             return ChatGoogleGenerativeAI(
                 model=settings.MODEL,
                 google_api_key=settings.API_KEY,
                 temperature=0.2,
                 timeout=settings.TIMEOUT_SECONDS,
+                max_retries=max_retries,
             )
         logger.warning("RagGraphService running in DRY_RUN / Mock mode (no API key)")
         return None
@@ -36,11 +39,17 @@ class RagGraphService:
         """Assembles the StateGraph nodes, edges, and conditional routing using Pydantic GraphState."""
         builder = StateGraph(GraphState)
 
-        # Add Nodes
-        builder.add_node("route_query", self._node_route_query)
-        builder.add_node("retrieve", self._node_retrieve)
-        builder.add_node("generate_grounded_answer", self._node_generate_grounded_answer)
-        builder.add_node("direct_chat", self._node_direct_chat)
+        retry_policy = RetryPolicy(
+            max_attempts=getattr(self._settings, "MAX_RETRIES", 3),
+            initial_interval=1.0,
+            backoff_factor=2.0,
+        )
+
+        # Add Nodes with retry policy
+        builder.add_node("route_query", self._node_route_query, retry_policy=retry_policy)
+        builder.add_node("retrieve", self._node_retrieve, retry_policy=retry_policy)
+        builder.add_node("generate_grounded_answer", self._node_generate_grounded_answer, retry_policy=retry_policy)
+        builder.add_node("direct_chat", self._node_direct_chat, retry_policy=retry_policy)
 
         # Connect Start -> Router
         builder.add_edge(START, "route_query")
