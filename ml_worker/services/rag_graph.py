@@ -12,6 +12,26 @@ from ml_worker.infra.vector_store import VectorStoreService
 from ml_worker.schemas.rag import GraphState, RouteDecision
 
 
+def _message_text(response: Any) -> str:
+    """Extracts plain text from an LLM response.
+
+    Newer Gemini models return ``content`` as a list of content blocks
+    (``[{"type": "text", "text": ...}]``) instead of a plain string.
+    """
+    content = getattr(response, "content", response)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type", "text") == "text":
+                parts.append(str(block.get("text", "")))
+        return "".join(parts)
+    return str(content)
+
+
 class RagGraphService:
     """Encapsulates the LangGraph RAG workflow and compiled StateGraph."""
 
@@ -151,9 +171,8 @@ class RagGraphService:
 
         chain = prompt_template | self._llm
         response = await chain.ainvoke({"context": context, "question": question})
-        content = response.content if hasattr(response, "content") else str(response)
 
-        return {"generation": str(content)}
+        return {"generation": _message_text(response)}
 
     async def _node_direct_chat(self, state: GraphState) -> dict[str, Any]:
         """Node 4: Answers conversational queries directly without document retrieval."""
@@ -170,9 +189,8 @@ class RagGraphService:
             HumanMessage(content=question),
         ]
         response = await self._llm.ainvoke(messages)
-        content = response.content if hasattr(response, "content") else str(response)
 
-        return {"generation": str(content), "sources": []}
+        return {"generation": _message_text(response), "sources": []}
 
     async def ainvoke(self, question: str) -> dict[str, Any]:
         """Executes the compiled LangGraph workflow end-to-end for a given question."""

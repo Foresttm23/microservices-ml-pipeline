@@ -161,3 +161,19 @@ async def test_node_direct_chat_with_llm(mock_vector_store):
 
         assert result["generation"] == "I am doing well, thanks!"
         assert result["sources"] == []
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("plain answer", "plain answer"),
+        ([{"type": "text", "text": "**Bold**\n"}, {"type": "text", "text": "tail"}], "**Bold**\ntail"),
+        (["a", {"type": "text", "text": "b"}, {"type": "thinking", "thinking": "x"}], "ab"),
+    ],
+)
+def test_message_text_handles_string_and_content_blocks(content, expected):
+    from types import SimpleNamespace
+
+    from ml_worker.services.rag_graph import _message_text
+
+    assert _message_text(SimpleNamespace(content=content)) == expected
